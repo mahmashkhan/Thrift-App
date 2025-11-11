@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const colors = require('colors')
 const adminRoutes = require('./src/routes/authRoutes');
 const cors = require('cors');
-
+const session = require('express-session')
+const passport = require("passport")
 const app = express();
 
 // Middleware to parse JSON
@@ -18,6 +19,7 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+require("./src/controllers/googleStartegy")
 
 // Connect to MongoDB
 mongoose
@@ -27,9 +29,14 @@ mongoose
   })
   .then(() => console.log('MongoDB connected'.yellow))
   .catch((err) => console.error('MongoDB connection error:'.red, err));
+// -----------------------------------
 
+app.use(session({ secret: 'secret', resave: false, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
+//--------------------------------------
 
-app.use('/api', adminRoutes);
+app.use( adminRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 4000;
