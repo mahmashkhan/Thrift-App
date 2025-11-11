@@ -7,6 +7,7 @@ const session = require('express-session')
 const passport = require("passport")
 const app = express();
 
+
 // Middleware to parse JSON
 app.use(express.json());
 app.use(cors()); // Enable CORS for all routes
@@ -20,10 +21,14 @@ app.use(
   })
 );
 require("./src/controllers/googleStartegy")
+const user= process.env.DB_USERNAME
+const pass= process.env.DB_PASSWORD
 
-// Connect to MongoDB
+const USERNAME = "mahmashak08";
+const PASSWORD = "yasmin-app786";
+const url = `mongodb+srv://${USERNAME}:${PASSWORD}@cluster0.zics7mf.mongodb.net/?appName=Cluster0"`// Connect to MongoDB
 mongoose
-  .connect('mongodb://localhost:27017/yasmin-app', {
+  .connect(url, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
