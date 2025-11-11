@@ -36,7 +36,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 //--------------------------------------
 
-app.use( adminRoutes);
+app.use( adminRoutes); //dont add "api" it will impact the google oauth sign in
 
 // Start the server
 const PORT = process.env.PORT || 4000;
