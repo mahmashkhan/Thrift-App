@@ -1,6 +1,12 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 
+export const signToken = (payload) => {
+  return jwt.sign(payload, secret, {
+    expiresIn,
+  });
+};
+
 const verifyToken = async (req, res, next) => {
   try {
     // Check for token in headers

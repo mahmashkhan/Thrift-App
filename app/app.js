@@ -4,6 +4,7 @@ import googleRoutes from './routes/google.routes.js'
 import cors from 'cors';
 import passport from 'passport';
 import './config/google.strategy.js';
+import errorHandler from './middleware/error.handler.js';
 
 const app = express();
 
@@ -14,5 +15,8 @@ app.use(passport.initialize());
 
 app.use(googleRoutes); 
 app.use(userRoutes); 
+
+
+app.use(errorHandler);
 
 export default app;
