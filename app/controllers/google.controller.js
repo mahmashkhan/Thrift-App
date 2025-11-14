@@ -22,7 +22,7 @@ exports.googleCallback = (req, res, next) => {
     );
 
     // Redirect or send JSON (depends on frontend)
-    res.redirect(`http://localhost:3000/login-success?token=${token}`);
+    res.redirect(`http://localhost:4000/login-success?token=${token}`);
   })(req, res, next);
 };
 

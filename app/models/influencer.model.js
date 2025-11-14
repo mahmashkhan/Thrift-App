@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-const UserSchema = new mongoose.Schema(
+const InfluencerSchema = new mongoose.Schema(
     {
         name: {
             type: String,
@@ -24,30 +24,34 @@ const UserSchema = new mongoose.Schema(
 
         role: {
             type: String,
-            enum: ["buyer", "seller", "admin"],
-            default: "buyer"
+            default: "influencer"
         },
 
         status: {
             type: String,
-            enum: [ "active", "suspended", "rejected"],
-            default: "active"
+            enum: ["pending", "active", "suspended", "rejected"],
+            default: "pending"
         },
 
         isVerified: {
             type: Boolean,
             default: false
-        }
+        },
+
+        // OPTIONAL fields for metrics
+        campaigns_run: { type: Number, default: 0 },
+        total_referrals: { type: Number, default: 0 },
+        commission_earned: { type: Number, default: 0 }
     },
     { timestamps: true }
 );
 
 // Hash password before saving
-UserSchema.pre("save", async function (next) { 
+InfluencerSchema.pre("save", async function (next) {
     if (!this.isModified("password")) return next();
     this.password = await bcrypt.hash(this.password, 10);
     next();
 });
 
-const User = mongoose.model("User", UserSchema);
-export default User;
+const Influencer = mongoose.model("Influencer", InfluencerSchema);
+export default Influencer;

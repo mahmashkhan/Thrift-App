@@ -7,6 +7,7 @@ const router = Router();
 router.post('/verify/otp', verifyOTP);
 router.post("/login", loginUser);
 router.post("/signup", signupValidation, createUser);
+router.post("/influencer/signup", signupValidation,createUser);
 
 
 export default router;

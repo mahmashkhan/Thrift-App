@@ -1,7 +1,8 @@
 import nodemailer from "nodemailer";
+import bcrypt from "bcryptjs";
+import otpStore from "../utils/otpStore.js";
 
-
-export const generateAndStoreOtp = async ({ name, email, password, role }) => {
+ const generateAndStoreOtp = async ({ name, email, password, role }) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000);
     const otpExpiry = Date.now() + 10 * 60 * 1000;
@@ -12,7 +13,7 @@ export const generateAndStoreOtp = async ({ name, email, password, role }) => {
 };
 
 
-export const sendOtpEmail = async ({ name, email, otp }) => {
+ const sendOtpEmail = async ({ name, email, otp }) => {
     const transporter = nodemailer.createTransport({
         service: "Gmail",
         auth: {

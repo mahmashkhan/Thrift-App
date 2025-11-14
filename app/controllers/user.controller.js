@@ -1,5 +1,5 @@
 import User from '../models/user.model.js';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import otpStore from '../utils/otpStore.js';
 import dotenv from "dotenv";
@@ -11,7 +11,7 @@ dotenv.config();
 
 
 
-export const createUser = catchAsync(async (req, res) => {
+ const createUser = catchAsync(async (req, res) => {
     const { name, email, password, role } = req.body;
 
     const userExist = await User.findOne({ email });
@@ -112,37 +112,26 @@ const verifyOTP = catchAsync(async (req, res, next) => {
 });
 
 
+// loginUser.js
 const loginUser = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
 
-    // Check if email and password are provided
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
     }
 
-    // Find the user by email
     const user = await User.findOne({ email });
-    if (!user) {
-        return res.status(404).json({ message: "User not found" });
+    if (!user || !user.password) {
+        return res.status(404).json({ message: "User not found or password missing" });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
         return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Generate JWT token
-    // const token = jwt.sign(
-    //     { id: user._id, role: user.role, email: user.email },
-    //     process.env.JWT_SECRET,
-    //     { expiresIn: '1h' } // token valid for 7 days
-    // );
+    const token = signToken({ id: user._id, role: user.role, email: user.email });
 
-
-    const token = signToken({ id: user._id, role: user.role, email: user.email })
-
-    // Return user info and token
     res.status(200).json({
         message: "Login successful",
         user: {
@@ -154,6 +143,7 @@ const loginUser = catchAsync(async (req, res, next) => {
         token
     });
 });
+
 
 
 export { createUser, loginUser, verifyOTP }
