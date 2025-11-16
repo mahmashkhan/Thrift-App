@@ -1,14 +1,14 @@
 // controllers/googleController.js
-const passport = require('passport');
-const jwt = require('jsonwebtoken');
+import passport from 'passport';
+import jwt from 'jsonwebtoken';
 
 
-exports.googleAuth = passport.authenticate('google', {
+const googleAuth = passport.authenticate('google', {
   scope: ['profile', 'email'],
 });
 
 
-exports.googleCallback = (req, res, next) => {
+const googleCallback = (req, res, next) => {
   passport.authenticate('google', { session: false }, (err, user) => {
     if (err || !user) {
       return res.redirect('/login-failed');
@@ -27,6 +27,9 @@ exports.googleCallback = (req, res, next) => {
 };
 
 // Step 3: Failure case
-exports.googleFailure = (req, res) => {
+const googleFailure = (req, res) => {
   res.status(401).json({ success: false, message: 'Google Login Failed' });
 };
+
+
+export { googleAuth, googleCallback, googleFailure }

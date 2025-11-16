@@ -1,6 +1,8 @@
 import User from "../models/user.model.js";
 import Influencer from "../models/influencer.model.js";
 import catchAsync from "../utils/catchAsync.js";
+import bcrypt from "bcryptjs";
+import AppError from "../utils/AppError.js";
 
 
 const sendResponse = (res, data, code = "00", success = true) => {
@@ -12,26 +14,123 @@ const sendResponse = (res, data, code = "00", success = true) => {
 };
 
 
-// ===========================================
-// 1) GET /admin/users  (list users + filters)
-// ===========================================
- const listUsers = catchAsync(async (req, res) => {
+// ------------------- CREATE Influencer -------------------
+const createInfluencer = catchAsync(async (req, res, next) => {
+    const { name, email, commissionRate, password } = req.body;
+    const userExist = await Influencer.findOne({ email });
+
+    if (userExist) {
+        return next(new AppError("User already Exist", 409))
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await Influencer.create({
+        name,
+        email,
+        commissionRate,
+        status: "active",
+        password: hashedPassword,
+    });
+
+    res.status(201).json({
+        code: "00",
+        successIndicator: true,
+        data: newUser
+    });
+});
+
+// ------------------- UPDATE Influencer -------------------
+const updateInfluencer = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const reqBody = req.body;
+
+    console.log("This is the body", reqBody)
+
+    const updated = await Influencer.findByIdAndUpdate(
+        id,
+        { ...reqBody },
+        { new: true }
+    );
+
+    console.log("Result Inf Update", updated)
+    if (!updated) {
+        return next(new AppError('Influencer not found', 304))
+    }
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: 'success',
+        data: updated
+    });
+});
+
+
+// ------------------- GET All Influencers -------------------
+const getInfluencers = catchAsync(async (req, res) => {
+    const users = await Influencer.find();
+    res.status(200).json({
+        code: "00",
+        successIndicator: "success",
+        data: users
+    });
+});
+
+
+
+
+// ------------------- GET Single Influencer -------------------
+const getSinglInfluencer = catchAsync(async (req, res) => {
+    const { id } = req.params;
+
+    const user = await Influencer.findById(id);
+
+    if (!user) return next(new AppError("Influencer not found", 404));
+
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: 'success',
+        data: user
+    });
+});
+
+// Delete Influencer
+const deleteInfluencer = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+
+    const deleted = await Influencer.findByIdAndDelete(id);
+
+    if (!deleted) return next(new AppError("Influencer not found", 404));
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: 'success',
+        data: {
+            message: "Influencer deleted successfully",
+            deletedId: id
+        }
+    });
+});
+
+const listUsers = catchAsync(async (req, res) => {
     const { role, status, page = 1, limit = 10 } = req.query;
+
+    console.log("Roleeee", role);
 
     const filter = {};
     if (role) filter.role = role;
     if (status) filter.status = status;
 
-    const total = await User.countDocuments(filter);
     const users = await User.find(filter)
         .skip((page - 1) * limit)
         .limit(Number(limit))
         .select("-password");
 
-    return sendResponse(res, {
-        total,
-        page: Number(page),
-        users
+    res.status(200).json({
+        code: "00",
+        successIndicator: 'success',
+        data: users
     });
 });
 
@@ -39,22 +138,25 @@ const sendResponse = (res, data, code = "00", success = true) => {
 // ===========================================
 // 2) GET /admin/users/:id (single user)
 // ===========================================
- const getUser = catchAsync(async (req, res) => {
+const getSingleUser = catchAsync(async (req, res) => {
     const { id } = req.params;
 
     const user = await User.findById(id).select("-password");
-    if (!user) {
-        return sendResponse(res, { message: "User not found" }, "01", false);
-    }
+    if (!user) return next(new AppError("User not found", 404));
 
-    return sendResponse(res, user);
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: 'success',
+        data: user
+    });
 });
 
 
 // ===========================================
 // 3) PUT /admin/users/:id  (update user)
 // ===========================================
- const updateUser = catchAsync(async (req, res) => {
+const updateUser = catchAsync(async (req, res) => {
     const { id } = req.params;
 
     const updates = req.body;
@@ -63,13 +165,13 @@ const sendResponse = (res, data, code = "00", success = true) => {
         new: true
     }).select("-password");
 
-    if (!user) {
-        return sendResponse(res, { message: "User not found" }, "01", false);
-    }
+    if (!user) return next(new AppError("User not found", 404));
 
-    return sendResponse(res, {
-        message: "User updated successfully",
-        user
+
+    res.status(201).json({
+        code: "00",
+        successIndicator: 'success',
+        data: user
     });
 });
 
@@ -77,23 +179,23 @@ const sendResponse = (res, data, code = "00", success = true) => {
 // ===========================================
 // 4) DELETE /admin/users/:id (delete user)
 // ===========================================
- const deleteUser = catchAsync(async (req, res) => {
+const deleteUser = catchAsync(async (req, res) => {
     const { id } = req.params;
 
     const user = await User.findByIdAndDelete(id);
 
-    if (!user) {
-        return sendResponse(res, { message: "User not found" }, "01", false);
-    }
+    if (!user) return next(new AppError("User not found", 404));
 
-    return sendResponse(res, { message: "User deleted successfully" });
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: 'success',
+        data: user
+    });
 });
 
 
-// ==================================================================
-// 5) POST /admin/users/:id/status  (approve / reject user/influencer)
-// ==================================================================
- const updateUserStatus = catchAsync(async (req, res) => {
+const updateUserStatus = catchAsync(async (req, res) => {
     const { id } = req.params;
     const { status, reason } = req.body;
 
@@ -106,17 +208,17 @@ const sendResponse = (res, data, code = "00", success = true) => {
         isInfluencer = true;
     }
 
-    if (!user) {
-        return sendResponse(res, { message: "User not found" }, "01", false);
-    }
+    if (!user) return next(new AppError("User not found", 404));
+
 
     user.status = status;
     if (reason) user.reason = reason;
     await user.save();
 
-    return sendResponse(res, {
-        message: "User status updated",
-        new_status: status
+    res.status(201).json({
+        code: "00",
+        successIndicator: 'success',
+        data: user
     });
 });
 
@@ -135,27 +237,36 @@ const sendResponse = (res, data, code = "00", success = true) => {
 // ===================================================================
 // 7) GET /admin/influencers/metrics/:id (metrics API)
 // ===================================================================
- const getInfluencerMetrics = catchAsync(async (req, res) => {
+const getInfluencerMetrics = catchAsync(async (req, res) => {
     const { id } = req.params;
 
     const influencer = await Influencer.findById(id);
-    if (!influencer) {
-        return sendResponse(res, { message: "Influencer not found" }, "01", false);
-    }
+    if (!influencer) return next(new AppError("Influencer not found", 404));
 
-    return sendResponse(res, {
-        campaigns_run: influencer.campaigns_run,
-        total_referrals: influencer.total_referrals,
-        commission_earned: influencer.commission_earned
+
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: 'success',
+        data: {
+            campaigns_run: influencer.campaigns_run,
+            total_referrals: influencer.total_referrals,
+            commission_earned: influencer.commission_earned
+        }
     });
 });
 
 export {
+    createInfluencer,
     getInfluencerMetrics,
-    // sellerRequests,
+    getInfluencers,
+    getSinglInfluencer,
+    updateInfluencer,
+    deleteInfluencer,
+
     updateUserStatus,
     deleteUser,
     updateUser,
-    getUser,
+    getSingleUser,
     listUsers
 }

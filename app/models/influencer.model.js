@@ -8,36 +8,26 @@ const InfluencerSchema = new mongoose.Schema(
             required: true,
             trim: true
         },
-
         email: {
             type: String,
             required: true,
             unique: true,
             lowercase: true
         },
-
+        commissionRate: {
+            type: String,
+            default: false
+        },
+        status: {
+            type: String,
+            enum: ["active", "inactive"],
+            default: "pending"
+        },
         password: {
             type: String,
             required: true,
             minlength: 6,
         },
-
-        role: {
-            type: String,
-            default: "influencer"
-        },
-
-        status: {
-            type: String,
-            enum: ["pending", "active", "suspended", "rejected"],
-            default: "pending"
-        },
-
-        isVerified: {
-            type: Boolean,
-            default: false
-        },
-
         // OPTIONAL fields for metrics
         campaigns_run: { type: Number, default: 0 },
         total_referrals: { type: Number, default: 0 },

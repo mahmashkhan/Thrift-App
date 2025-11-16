@@ -1,5 +1,6 @@
 import express from 'express';
 import userRoutes from './routes/user.routes.js';
+import productRoutes from './routes/product.routes.js';
 import googleRoutes from './routes/google.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import cors from 'cors';
@@ -10,13 +11,14 @@ import errorHandler from './middleware/error.handler.js';
 const app = express();
 
 app.use(express.json());
-app.use(cors()); 
+app.use(cors());
 app.use(passport.initialize());
 
 
-app.use(googleRoutes); 
-app.use(userRoutes); 
-app.use("/admin",adminRoutes); 
+app.use(googleRoutes);
+app.use('/api/v1/user', userRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/product", productRoutes);
 
 
 app.use(errorHandler);
