@@ -1,6 +1,7 @@
 import express from 'express';
 import userRoutes from './routes/user.routes.js';
 import productRoutes from './routes/product.routes.js';
+import orderRoutes from "./routes/order.routes.js"
 import googleRoutes from './routes/google.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import cors from 'cors';
@@ -19,6 +20,7 @@ app.use(googleRoutes);
 app.use('/api/v1/user', userRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/product", productRoutes);
+app.use("/api/v1/order", orderRoutes);
 
 
 app.use(errorHandler);

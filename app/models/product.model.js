@@ -18,7 +18,7 @@ const ProductSchema = new mongoose.Schema(
     },
 
     // Listing type
-    listingType: {
+    saleType: {
       type: String,
       enum: ["self", "sellForMe", "influencer"],
       required: true

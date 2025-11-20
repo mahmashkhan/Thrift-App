@@ -93,7 +93,9 @@ const updateProductStatus = async (req, res, next) => {
         return next(new AppError('Prodcut Not found', 404))
     }
 
+    console.log(product)
     product.status = status;
+
     const updated = await product.save();
 
     res.status(201).json({

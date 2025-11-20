@@ -5,11 +5,15 @@ import otpStore from "../utils/otpStore.js";
 
 
 const generateAndStoreOtp = async ({ name, email, password, role }) => {
-    const hashedPassword = await bcrypt.hash(password, 10);
+
     const otp = Math.floor(100000 + Math.random() * 900000);
     const otpExpiry = Date.now() + 10 * 60 * 1000;
 
-    otpStore.set(email, { otp, name, hashedPassword, role, otpExpiry });
+
+    // console.log("Here is hashedPass", hashedPassword);
+
+
+    otpStore.set(email, { otp, name, password, role, otpExpiry });
 
     return otp;
 };

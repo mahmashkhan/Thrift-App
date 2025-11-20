@@ -36,6 +36,7 @@ export const verifyToken = async (req, res, next) => {
   }
 };
 
+
 // Optional: Role-based middleware
 export const authorizeRoles = (...roles) => (req, res, next) => {
   if (!req.user) return res.status(401).json({ message: "Unauthorized" });
