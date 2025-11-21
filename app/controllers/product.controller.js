@@ -3,15 +3,32 @@ import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 
 
-const createProduct = async (req, res) => {
-    const product = await Product.create(req.body);
+const createProduct = catchAsync(async (req, res, next) => {
+    let { saleType, ownerId, ...rest } = req.body;
+
+    if (saleType === "self" || saleType === "sellForMe") {
+        ownerId = req.user.id;  
+    } else if (saleType === "influencer") {
+        if (!ownerId) {
+            return next(new AppError("ownerId is required for influencer sale type", 400));
+        }
+        ownerId = ownerId;
+    }
+
+    const product = await Product.create({
+        ...rest,
+        saleType,
+        ownerId,
+        status: "pending"
+    });
+
+
     res.status(201).json({
         code: "00",
         successIndicator: true,
         data: product
     });
-};
-
+});
 
 
 // get all products by status

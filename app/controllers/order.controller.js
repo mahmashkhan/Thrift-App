@@ -8,12 +8,11 @@ import { createCartItem } from "../utils/createCartItem.js";
 import Order from "../models/order.model.js";
 
 
-const createBid = catchAsync(async (req, res) => {
-    const { productId, bidAmount } = req.body;
+const createBid = catchAsync(async (req, res, next) => {
+    const { productId, priceOffered, itemQuantity } = req.body;
 
     const product = await Product.findById(productId);
 
-    // console.log("Fetching this Product", product)
 
     if (!product) {
         return next(new AppError('Prodcut Not found', 404))
@@ -36,7 +35,8 @@ const createBid = catchAsync(async (req, res) => {
         sellerId: product.ownerId,
         assignedTo,
         status: "pending",
-        bidAmount
+        priceOffered,
+        itemQuantity
     });
 
 
@@ -64,15 +64,28 @@ const acceptBid = catchAsync(async (req, res, next) => {
     const { bidId } = req.params;
 
     const bid = await Bid.findById(bidId)
+    if (!bid) {
+
+        return next(new AppError('No Bids found with bid id', 404))
+    }
     let cartItem;
 
     console.log("This is the user", req?.user?.id);
-    console.log("This is the Bid", bid?.assignedTo);
+    console.log("This is the Bid Assigned to", bid?.assignedTo);
 
-    if (bid?.assignedTo === req?.user?.id) {
-        bid.status = "accepted"
-        await bid.save();
+    const buyerId = bid?.buyerId;
+    const productId = bid?.productId;
 
+
+    const existingItem = await Cart.findOne({ buyerId, productId });
+
+    if (existingItem) {
+        return next(new AppError("Product already In Cart", 402));
+    }
+
+    if (bid?.assignedTo.toString() === req?.user?.id) {
+        bid.status = "accepted",
+            await bid.save();
         cartItem = await createCartItem(bid, req.user.id);
     } else {
         return next(new AppError('You are not allowed to accept bid', 401))
@@ -80,7 +93,7 @@ const acceptBid = catchAsync(async (req, res, next) => {
 
     res.status(201).json({
         code: "00",
-        successIndicator: true,
+        successIndicator: "success",
         data: {
             cart: cartItem
         }
@@ -98,10 +111,11 @@ const rejectBid = catchAsync(async (req, res, next) => {
     console.log("This is the Bid", bid?.assignedTo);
 
     if (bid?.assignedTo === req?.user?.id) {
-        bid.status = "rejected"
-        await bid.save();
+        await Bid.findByIdAndDelete(bidId);
+        // bid.status = "rejected"
+        // await bid.save();
     } else {
-        return next(new AppError('You are not allowed to accept bid', 401))
+        return next(new AppError('You are not allowed to reject bid', 401))
     }
 
     res.status(201).json({
@@ -132,23 +146,23 @@ const addToCart = catchAsync(async (req, res, next) => {
     // Check if already in cart
     const existingItem = await Cart.findOne({ buyerId, productId, status: "reserved" });
     if (existingItem) {
-        return res.status(200).json({
-            message: "Product already in cart",
-            data: existingItem
-        });
+        return next(new AppError("Product already In Cart", 402));
     }
 
     // expiry date logic
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 3);
 
+    console.log("Product being logged", product);
+
     // Create cart item
-    const cartItem = await Cart.create({
+    await Cart.create({
         buyerId,
         productId,
         bidId: null,
         expiresAt,
-        status: "reserved"
+        // status: "reserved", 
+        price: product?.price
     });
 
     res.status(201).json({
@@ -159,7 +173,7 @@ const addToCart = catchAsync(async (req, res, next) => {
 });
 
 
-const ViewCart = catchAsync(async (req, res) => {
+const ViewCart = catchAsync(async (req, res, next) => {
     const { buyerId } = req.params;
 
 
@@ -174,10 +188,11 @@ const ViewCart = catchAsync(async (req, res) => {
     });
 });
 
-const checkOut = catchAsync(async (req, res) => {
+const checkOut = catchAsync(async (req, res, next) => {
     const buyerId = req.user.id;
 
-    const cartItems = await Cart.find({ buyerId, status: "reserved" }).populate("productId");
+    const cartItems = await Cart.find({ buyerId }).populate("productId");
+
 
     if (!cartItems.length) {
         return next(new AppError("Cart is empty", 404));
@@ -185,15 +200,40 @@ const checkOut = catchAsync(async (req, res) => {
 
     // 2. Calculate total amount
     let totalAmount = 0;
+    const orderItems = [];
 
-    const orderItems = cartItems.map(item => {
-        totalAmount += item.productId.price;
-        return {
+    for (const item of cartItems) {
+        console.log("Item Be like", item);
+        const product = await Product.findById(item.productId._id);
+
+
+        if (!product) {
+            return next(new AppError("Product not found", 404));
+        }
+
+        // If product quantity < item qty
+        if (product.quantity < item.quantity) {
+            return next(new AppError(`Insufficient quantity for product: ${product.title}`, 400));
+        }
+
+        // Deduct stock
+        product.quantity -= item.quantity;
+
+        if (product.quantity === 0) {
+            product.status = "sold";
+        }
+
+        await product.save();
+
+        totalAmount += item.productId.price * item.quantity;
+
+        orderItems.push({
             productId: item.productId._id,
             price: item.productId.price,
+            quantity: item.quantity,
             bidId: item.bidId || null
-        };
-    });
+        });
+    }
 
     const order = await Order.create({
         buyerId,
@@ -202,29 +242,47 @@ const checkOut = catchAsync(async (req, res) => {
         status: "pending"
     });
 
+    // Remove from cart
     await Cart.deleteMany({ buyerId, status: "reserved" });
-
-    //    // 5. (Optional) notify admin/seller based on saleType
-    // cartItems.forEach(item => {
-    //     if (item.productId.saleType === "self") {
-    //         console.log("Notify seller:", item.productId.sellerId);
-    //     } else {
-    //         console.log("Notify admin for influencer/sellForMe process");
-    //     }
-    // });
 
     res.status(201).json({
         code: "00",
-        successIndicator: true,
-        message: "Checkout successful",
-        order
+        successIndicator: "success",
+        data: order
     });
 
 });
 
 
+const getBuyerOrders = catchAsync(async (req, res, next) => {
+    const orders = await Order.find({ buyerId: req.params.buyerId })
+        .populate("items.productId")
+        .sort({ createdAt: -1 });
+
+    res.status(200).json({ code: "00", successIndicator: "success", data: orders });
+
+})
+
+const getSellerOrders = catchAsync(async (req, res, next) => {
+    const orders = await Order.find({ sellerId: req.params.sellerId })
+        .populate("items.productId")
+        .sort({ createdAt: -1 });
+
+    res.status(200).json({ code: "00", successIndicator: "success", data: orders });
+})
 
 
-export { createBid, getProductBids, acceptBid, rejectBid, addToCart, ViewCart, checkOut }
+const getProductOrders = catchAsync(async (req, res, next) => {
+    const orders = await Order.find({ productId: req.params.sellerId })
+        .populate("items.productId")
+        .sort({ createdAt: -1 });
+
+    res.status(200).json({ code: "00", successIndicator: "success", data: orders });
+
+})
+
+
+
+export { createBid, getProductBids, acceptBid, rejectBid, addToCart, ViewCart, checkOut, getBuyerOrders, getSellerOrders, getProductOrders }
 
 

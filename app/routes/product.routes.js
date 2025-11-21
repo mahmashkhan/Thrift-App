@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { createProduct, deleteProduct, getProductByStatus, getProductsByOwner, getSingleProduct, updateProductData, updateProductStatus } from "../controllers/product.controller.js";
+import { verifyToken } from "../config/jwt.handle.js";
 const router = Router();
 
 
-router.post("/create", createProduct);
+router.post("/create", verifyToken, createProduct);
 router.get("/get", getProductByStatus);
 router.get("/:id", getSingleProduct);
 router.get("/owner/:id", getProductsByOwner);

@@ -1,16 +1,17 @@
 import mongoose from "mongoose";
 
 const BidSchema = new mongoose.Schema({
-    productId: { type: String, ref: "Product", required: true },
-    buyerId: { type: String, ref: "User", required: true },
-    sellerId: { type: String, ref: "User", required: true },
-    assignedTo: { type: String, ref: "User", required: true },
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    buyerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     status: {
         type: String,
         enum: ["pending", "approved", "rejected", "accepted"],
         default: "pending"
     },
-    bidAmount: Number
+    priceOffered: { type: Number, required: true },
+    itemQuantity: { type: Number, required: true },
 }, { timestamps: true });
 
 

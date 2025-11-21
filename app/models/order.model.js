@@ -1,13 +1,15 @@
+import mongoose from "mongoose";
+
 const OrderSchema = new mongoose.Schema({
     buyerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     items: [
         {
-            productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+            productId: { type: String, ref: "Product" },
             price: Number,
-            bidId: { type: mongoose.Schema.Types.ObjectId, ref: "Bid", default: null }
+            bidId: { type: String, ref: "Bid", default: null }
         }
     ],
-    totalAmount: Number,
+    totalAmount: String,
     status: { type: String, enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"], default: "pending" },
 }, { timestamps: true });
 
