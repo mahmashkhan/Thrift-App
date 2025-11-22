@@ -203,9 +203,9 @@ const checkOut = catchAsync(async (req, res, next) => {
     const orderItems = [];
 
     for (const item of cartItems) {
-        console.log("Item Be like", item);
         const product = await Product.findById(item.productId._id);
 
+        console.log("Each Product Be like", product);
 
         if (!product) {
             return next(new AppError("Product not found", 404));
@@ -230,7 +230,8 @@ const checkOut = catchAsync(async (req, res, next) => {
         orderItems.push({
             productId: item.productId._id,
             price: item.productId.price,
-            quantity: item.quantity,
+            quantity: item.productId.quantity,
+            productOwner: item.productId.ownerId,
             bidId: item.bidId || null
         });
     }
@@ -243,7 +244,7 @@ const checkOut = catchAsync(async (req, res, next) => {
     });
 
     // Remove from cart
-    await Cart.deleteMany({ buyerId, status: "reserved" });
+    await Cart.deleteMany({ buyerId });
 
     res.status(201).json({
         code: "00",
@@ -255,34 +256,69 @@ const checkOut = catchAsync(async (req, res, next) => {
 
 
 const getBuyerOrders = catchAsync(async (req, res, next) => {
+    console.log("Buyer Orders be like", req.params.buyerId)
+
     const orders = await Order.find({ buyerId: req.params.buyerId })
         .populate("items.productId")
         .sort({ createdAt: -1 });
 
+
     res.status(200).json({ code: "00", successIndicator: "success", data: orders });
 
 })
 
-const getSellerOrders = catchAsync(async (req, res, next) => {
-    const orders = await Order.find({ sellerId: req.params.sellerId })
-        .populate("items.productId")
+const getOwnerOrders = catchAsync(async (req, res, next) => {
+    const { ownerId } = req.params;
+
+    if (!ownerId) {
+        return next(new AppError("Onwer ID is required", 400));
+    }
+
+    const orders = await Order.find({ "items.productOwner": ownerId })
+        // .populate("buyerId", "name email")   // optional
+        // .populate("items.productId", "name price images") // optional
         .sort({ createdAt: -1 });
 
-    res.status(200).json({ code: "00", successIndicator: "success", data: orders });
+    if (!orders.length) {
+        return next(new AppError("No orders found for this product", 404));
+    }
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: "success",
+        count: orders.length,
+        data: orders,
+    });
 })
 
 
-const getProductOrders = catchAsync(async (req, res, next) => {
-    const orders = await Order.find({ productId: req.params.sellerId })
-        .populate("items.productId")
+const getProductOrders = async (req, res, next) => {
+    const { productId } = req.params;
+
+    if (!productId) {
+        return next(new AppError("Product ID is required", 400));
+    }
+
+    const orders = await Order.find({ "items.productId": productId })
+        // .populate("buyerId", "name email")   // optional
+        // .populate("items.productId", "name price images") // optional
         .sort({ createdAt: -1 });
 
-    res.status(200).json({ code: "00", successIndicator: "success", data: orders });
+    if (!orders.length) {
+        return next(new AppError("No orders found for this product", 404));
+    }
 
-})
+    res.status(200).json({
+        code: "00",
+        successIndicator: "success",
+        count: orders.length,
+        data: orders,
+    });
+};
 
 
 
-export { createBid, getProductBids, acceptBid, rejectBid, addToCart, ViewCart, checkOut, getBuyerOrders, getSellerOrders, getProductOrders }
+
+export { createBid, getProductBids, acceptBid, rejectBid, addToCart, ViewCart, checkOut, getBuyerOrders, getOwnerOrders, getProductOrders }
 
 
