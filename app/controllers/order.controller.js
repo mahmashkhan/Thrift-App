@@ -29,6 +29,10 @@ const createBid = catchAsync(async (req, res, next) => {
         assignedTo = adminId; // admin user ID
     }
 
+    io.to(assignedTo.toString()).emit("Test", {
+        message: "User called us",
+    })
+
     await Bid.create({
         productId,
         buyerId: req?.user?.id,
