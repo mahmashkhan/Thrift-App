@@ -6,6 +6,7 @@ import User from '../models/user.model.js';
 import catchAsync from "../utils/catchAsync.js";
 import { createCartItem } from "../utils/createCartItem.js";
 import Order from "../models/order.model.js";
+import { io } from "../server.js";
 
 
 const createBid = catchAsync(async (req, res, next) => {
@@ -29,11 +30,8 @@ const createBid = catchAsync(async (req, res, next) => {
         assignedTo = adminId; // admin user ID
     }
 
-    io.to(assignedTo.toString()).emit("Test", {
-        message: "User called us",
-    })
 
-    await Bid.create({
+    const bid = await Bid.create({
         productId,
         buyerId: req?.user?.id,
         sellerId: product.ownerId,
@@ -41,6 +39,14 @@ const createBid = catchAsync(async (req, res, next) => {
         status: "pending",
         priceOffered,
         itemQuantity
+    });
+
+    io.to(assignedTo.toString()).emit("newBid", {
+        message: "New bid received ===========>>> ",
+        bidId: bid._id,
+        productId,
+        buyerId: req.user.id,
+        priceOffered
     });
 
 
@@ -91,6 +97,14 @@ const acceptBid = catchAsync(async (req, res, next) => {
         bid.status = "accepted",
             await bid.save();
         cartItem = await createCartItem(bid, req.user.id);
+
+        io.to(buyerId.toString()).emit("bidAccepted", {
+            message: "Bid Accepted",
+            bidId,
+            productId,
+            priceOffered: bid.priceOffered,
+        });
+
     } else {
         return next(new AppError('You are not allowed to accept bid', 401))
     }
@@ -111,11 +125,15 @@ const rejectBid = catchAsync(async (req, res, next) => {
 
     const bid = await Bid.findById(bidId)
 
-    console.log("This is the user", req?.user?.id);
-    console.log("This is the Bid", bid?.assignedTo);
-
     if (bid?.assignedTo === req?.user?.id) {
         await Bid.findByIdAndDelete(bidId);
+
+        io.to(buyerId.toString()).emit("bidRejected", {
+            message: "Bid Rejected",
+            bidId,
+            productId: bid?.productId,
+            priceOffered: bid.priceOffered,
+        });
         // bid.status = "rejected"
         // await bid.save();
     } else {

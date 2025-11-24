@@ -1,3 +1,4 @@
+import Favourite from "../models/favourite.model.js";
 import Product from "../models/product.model.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
@@ -7,7 +8,7 @@ const createProduct = catchAsync(async (req, res, next) => {
     let { saleType, ownerId, ...rest } = req.body;
 
     if (saleType === "self" || saleType === "sellForMe") {
-        ownerId = req.user.id;  
+        ownerId = req.user.id;
     } else if (saleType === "influencer") {
         if (!ownerId) {
             return next(new AppError("ownerId is required for influencer sale type", 400));
@@ -127,7 +128,7 @@ const updateProductStatus = async (req, res, next) => {
 // ========================
 // DELETE PRODUCT
 // ========================
-const deleteProduct = async (req, res, next) => {
+const deleteProduct = catchAsync(async (req, res, next) => {
     const deleted = await Product.findByIdAndDelete(req.params.id);
 
     if (!deleted) {
@@ -136,10 +137,83 @@ const deleteProduct = async (req, res, next) => {
 
     return sendResponse(res, { message: "Product removed" });
 
-};
+});
+
+
+const addProductToFavourite = catchAsync(async (req, res, next) => {
+    const { productId } = req.body;
+    const buyerId = req.user.id;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+        return next(new AppError('Prodcut Not found', 404))
+    }
+
+    const existingItem = await Favourite.findOne({ buyerId, productId });
+    if (existingItem) {
+        return next(new AppError("Product already In Cart", 402));
+    }
+
+    // Create cart item
+    const fav = await Favourite.create({
+        buyerId,
+        productId
+    });
+
+    res.status(201).json({
+        code: "00",
+        successIndicator: "success",
+        data: fav
+    });
+})
+
+
+const getBuyerFavourites = catchAsync(async (req, res, next) => {
+    const buyerId = req.params.id;
+
+    const items = await Favourite.find({ buyerId });
+    if (!items) {
+        return next(new AppError("No Favourite Items", 404));
+    }
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: "success",
+        data: items
+    });
+})
+
+// const getSingleFavouriteItem = catchAsync(async (req, res, next) => {
+//     const itemId = req.params.itemId;
+
+//     const item = await Favourite.findById({ itemId });
+//     if (!item) {
+//         return next(new AppError("Item not Found", 404));
+//     }
+
+//     res.status(200).json({
+//         code: "00",
+//         successIndicator: "success",
+//         data: item
+//     });
+// })
+
+
+const removeItemFromFav = catchAsync(async (req, res, next) => {
+    const itemId = req.params.itemId;
+
+    const deleted = await Favourite.findByIdAndDelete({ itemId });
+    if (!deleted) {
+        return next(new AppError("No Favourite Items", 404));
+    }
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: "success",
+        data: deleted
+    });
+})
 
 
 
-
-
-export { createProduct, getProductByStatus, getSingleProduct, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct }
+export { createProduct, getProductByStatus, getSingleProduct, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct, addProductToFavourite, getBuyerFavourites, removeItemFromFav, getSingleFavouriteItem }

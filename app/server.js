@@ -11,13 +11,26 @@ const server = http.createServer(app);
 
 export const io = new Server(server, {
     cors: {
-        origin: "*"
+        origin: "http://localhost:3000",
+        credentials: true
     }
 })
 
 io.on("connection", (socket) => {
-    console.log("socket connect", socket.id);
-})
+    console.log("Socket connected:", socket.id);
+
+    socket.on("joinRoom", (userId) => {
+        socket.join(userId);
+        console.log("Joined user room:", userId);
+    }); 
+
+    socket.on("sendMessage", ({ to, message, from }) => {
+        console.log("Ab Chalega Pakistaan", to, message, from )
+        io.to(to).emit("receiveMessage", { message, from });
+    });
+
+    socket.on("disconnect", () => console.log("Socket disconnected"));
+});
 
 connectDB()
 
