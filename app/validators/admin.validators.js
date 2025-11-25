@@ -1,0 +1,22 @@
+import Joi from "joi";
+
+export const influencerValidators = Joi.object({
+    name: Joi.string().required(),
+    email: Joi.string().email().required(),
+    commissionRate: Joi.string().required(),
+    password: Joi.string().required(),
+
+})
+
+export const statusValidator = Joi.object({
+    status: Joi.string().required()
+})
+
+
+export const policyValidator = Joi.object({
+
+    title: Joi.string().required(),
+    content: Joi.string().required(),
+    type: Joi.string().required(),
+
+})
