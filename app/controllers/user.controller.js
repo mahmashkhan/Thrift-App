@@ -11,7 +11,7 @@ dotenv.config();
 
 
 const createUser = catchAsync(async (req, res, next) => {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, phone, address } = req.body;
 
     const userExist = await User.findOne({ email });
     if (userExist) {
@@ -19,7 +19,7 @@ const createUser = catchAsync(async (req, res, next) => {
     }
 
     // 2. Generate & store OTP in memory
-    const otp = await generateAndStoreOtp({ name, email, password, role });
+    const otp = await generateAndStoreOtp({ name, email, password, role, phone, address });
 
     // 3. Send OTP email
     await sendOtpEmail({ name, email, otp });
@@ -51,10 +51,12 @@ const verifyOTP = catchAsync(async (req, res, next) => {
 
     // Create user
     const newUser = new User({
-        name: otpData.name,
+        name: otpData?.name,
         email: email,
         password: hashedPassword,
-        role: otpData.role,
+        role: otpData?.role,
+        phone: otpData?.phone,
+        address: otpData?.address,
         isVerified: true
     });
 
@@ -75,7 +77,7 @@ const verifyOTP = catchAsync(async (req, res, next) => {
 // loginUser.js
 const loginUser = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
-    console.log(req.body,"---")
+    console.log(req.body, "---")
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
     }
@@ -89,7 +91,7 @@ const loginUser = catchAsync(async (req, res, next) => {
     console.log("Raw", password);
 
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("isMatch====",isMatch)
+    console.log("isMatch====", isMatch)
     // console.log("Is Match is ==========>", isMatch);
     if (!isMatch) {
         return res.status(400).json({ message: "Invalid email or password" });
@@ -111,6 +113,14 @@ const loginUser = catchAsync(async (req, res, next) => {
     });
 });
 
+const logOut = catchAsync(async (req, res) => {
+    // delete refresh token from DB
+    await RefreshToken.deleteOne({ token: req.body.refreshToken });
+
+    res.json({ message: "Logged out successfully" });
+})
 
 
-export { createUser, loginUser, verifyOTP }
+
+
+export { createUser, loginUser, verifyOTP,logOut }

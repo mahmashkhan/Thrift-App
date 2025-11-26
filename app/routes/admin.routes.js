@@ -45,20 +45,8 @@ router.get("/get/policy", getAllPolicies);
 router.get("/get/policy/:id", getPolicyById);
 router.put("/update/policy/:id", updatePolicy);
 router.delete("/delete/policy/:id", deletePolicy);
-
-
-
-
-// router.post('/create/influencer', createInfluencers);
-
-// Get all influencers
-// router.get('/influencer', getInfluencers);
-
-// Update influencer
+// ================================================
 router.put('/update/influencer/:id', updateInfluencer);
-
-
-
 
 
 export default router;

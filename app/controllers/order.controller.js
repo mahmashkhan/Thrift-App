@@ -6,6 +6,7 @@ import User from '../models/user.model.js';
 import catchAsync from "../utils/catchAsync.js";
 import { createCartItem } from "../utils/createCartItem.js";
 import Order from "../models/order.model.js";
+import { io } from "../server.js";
 
 
 const createBid = catchAsync(async (req, res, next) => {
