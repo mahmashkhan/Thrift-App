@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
+<<<<<<< HEAD
 import bcrypt from "bcryptjs";
+=======
+>>>>>>> origin/recover-branch
 
 const UserSchema = new mongoose.Schema(
     {
@@ -18,7 +21,11 @@ const UserSchema = new mongoose.Schema(
 
         password: {
             type: String,
+<<<<<<< HEAD
             required: true,
+=======
+            // required: true,
+>>>>>>> origin/recover-branch
             minlength: 6,
         },
 
@@ -27,6 +34,22 @@ const UserSchema = new mongoose.Schema(
             enum: ["buyer", "seller", "admin"],
             default: "buyer"
         },
+<<<<<<< HEAD
+=======
+        phone: {
+            type: Number,
+            minlength: 11,
+            
+        },
+        address: {
+            type: String,
+           
+        },
+        image: {
+            type: String,
+           
+        },
+>>>>>>> origin/recover-branch
 
         status: {
             type: String,
@@ -42,12 +65,15 @@ const UserSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+<<<<<<< HEAD
 // Hash password before saving
 // UserSchema.pre("save", async function (next) { 
 //     if (!this.isModified("password")) return next();
 //     this.password = await bcrypt.hash(this.password, 10);
 //     next();
 // });
+=======
+>>>>>>> origin/recover-branch
 
 const User = mongoose.model("User", UserSchema);
 export default User;

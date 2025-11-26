@@ -4,7 +4,7 @@ import otpStore from "../utils/otpStore.js";
 
 
 
-const generateAndStoreOtp = async ({ name, email, password, role }) => {
+const generateAndStoreOtp = async ({ name, email, password, role, phone, address,image }) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000);
     const otpExpiry = Date.now() + 10 * 60 * 1000;
@@ -12,12 +12,10 @@ const generateAndStoreOtp = async ({ name, email, password, role }) => {
 
     // console.log("Here is hashedPass", hashedPassword);
 
-
-    otpStore.set(email, { otp, name, password, role, otpExpiry });
+    otpStore.set(email, { otp, name, password, role, otpExpiry ,phone,address,image});
 
     return otp;
 };
-
 
 const sendOtpEmail = async ({ name, email, otp }) => {
     const transporter = nodemailer.createTransport({

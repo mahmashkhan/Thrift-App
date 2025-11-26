@@ -11,12 +11,17 @@ const server = http.createServer(app);
 
 export const io = new Server(server, {
     cors: {
+<<<<<<< HEAD
         origin: "http://localhost:3000",
         credentials: true
+=======
+        origin: "*"
+>>>>>>> origin/recover-branch
     }
 })
 
 io.on("connection", (socket) => {
+<<<<<<< HEAD
     console.log("Socket connected:", socket.id);
 
     socket.on("joinRoom", (userId) => {
@@ -31,6 +36,10 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => console.log("Socket disconnected"));
 });
+=======
+    console.log("socket connect", socket.id);
+})
+>>>>>>> origin/recover-branch
 
 connectDB()
 

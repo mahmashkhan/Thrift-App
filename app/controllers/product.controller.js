@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import Favourite from "../models/favourite.model.js";
+=======
+>>>>>>> origin/recover-branch
 import Product from "../models/product.model.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
@@ -8,7 +11,11 @@ const createProduct = catchAsync(async (req, res, next) => {
     let { saleType, ownerId, ...rest } = req.body;
 
     if (saleType === "self" || saleType === "sellForMe") {
+<<<<<<< HEAD
         ownerId = req.user.id;
+=======
+        ownerId = req.user.id;  
+>>>>>>> origin/recover-branch
     } else if (saleType === "influencer") {
         if (!ownerId) {
             return next(new AppError("ownerId is required for influencer sale type", 400));
@@ -59,6 +66,7 @@ const getSingleProduct = catchAsync(async (req, res, next) => {
 
 });
 
+<<<<<<< HEAD
 const searchProdByFilter = catchAsync(async (req, res, next) => {
     const { category, minPrice, maxPrice, status, saleType, keyword, page = 1, limit = 10 } = req.query;
 
@@ -104,6 +112,8 @@ const searchProdByFilter = catchAsync(async (req, res, next) => {
 });
 
 
+=======
+>>>>>>> origin/recover-branch
 const getProductsByOwner = catchAsync(async (req, res, next) => {
     const filter = {};
     if (req.params.id) filter.ownerId = req.params.id;
@@ -173,7 +183,11 @@ const updateProductStatus = async (req, res, next) => {
 // ========================
 // DELETE PRODUCT
 // ========================
+<<<<<<< HEAD
 const deleteProduct = catchAsync(async (req, res, next) => {
+=======
+const deleteProduct = async (req, res, next) => {
+>>>>>>> origin/recover-branch
     const deleted = await Product.findByIdAndDelete(req.params.id);
 
     if (!deleted) {
@@ -182,6 +196,7 @@ const deleteProduct = catchAsync(async (req, res, next) => {
 
     return sendResponse(res, { message: "Product removed" });
 
+<<<<<<< HEAD
 });
 
 
@@ -262,3 +277,12 @@ const removeItemFromFav = catchAsync(async (req, res, next) => {
 
 
 export { createProduct, getProductByStatus, getSingleProduct, searchProdByFilter, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct, addProductToFavourite, getBuyerFavourites, removeItemFromFav }
+=======
+};
+
+
+
+
+
+export { createProduct, getProductByStatus, getSingleProduct, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct }
+>>>>>>> origin/recover-branch
