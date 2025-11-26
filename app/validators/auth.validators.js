@@ -11,6 +11,7 @@ export const signupValidator = Joi.object({
     password: Joi.string().required(),
     role: Joi.string().required(),
     phone: Joi.string().length(11).required(),
-    address: Joi.string().required()
+    address: Joi.string().required(),
+    image: Joi.string().required()
 
 })

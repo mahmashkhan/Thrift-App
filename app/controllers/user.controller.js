@@ -11,7 +11,7 @@ dotenv.config();
 
 
 const createUser = catchAsync(async (req, res, next) => {
-    const { name, email, password, role, phone, address } = req.body;
+    const { name, email, password, role, phone, address,image } = req.body;
 
     const userExist = await User.findOne({ email });
     if (userExist) {
@@ -19,7 +19,7 @@ const createUser = catchAsync(async (req, res, next) => {
     }
 
     // 2. Generate & store OTP in memory
-    const otp = await generateAndStoreOtp({ name, email, password, role, phone, address });
+    const otp = await generateAndStoreOtp({ name, email, password, role, phone, address,image });
 
     // 3. Send OTP email
     await sendOtpEmail({ name, email, otp });
@@ -57,6 +57,7 @@ const verifyOTP = catchAsync(async (req, res, next) => {
         role: otpData?.role,
         phone: otpData?.phone,
         address: otpData?.address,
+        image: otpData?.image,
         isVerified: true
     });
 
@@ -119,6 +120,17 @@ const logOut = catchAsync(async (req, res) => {
 
     res.json({ message: "Logged out successfully" });
 })
+
+// const getAllUsers = catchAsync(async (req,res)=>{
+// const users = await User.Find();
+// res.status(200).json({
+//     status: "00",
+//     successIndicator: "success",
+//     data: {
+//         ...users
+//     },})
+
+// })
 
 
 

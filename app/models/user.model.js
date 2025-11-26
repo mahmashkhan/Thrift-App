@@ -35,6 +35,10 @@ const UserSchema = new mongoose.Schema(
             type: String,
            
         },
+        image: {
+            type: String,
+           
+        },
 
         status: {
             type: String,

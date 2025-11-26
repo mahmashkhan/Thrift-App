@@ -4,12 +4,12 @@ import otpStore from "../utils/otpStore.js";
 
 
 
-const generateAndStoreOtp = async ({ name, email, password, role, phone, address }) => {
+const generateAndStoreOtp = async ({ name, email, password, role, phone, address,image }) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000);
     const otpExpiry = Date.now() + 10 * 60 * 1000;
 
-    otpStore.set(email, { otp, name, password, role, otpExpiry ,phone,address});
+    otpStore.set(email, { otp, name, password, role, otpExpiry ,phone,address,image});
 
     return otp;
 };
