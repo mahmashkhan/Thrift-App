@@ -8,3 +8,4 @@ router.get('/auth/google/callback', googleCallback);
 router.get('/login-failed', googleFailure);
 
 export default router;
+

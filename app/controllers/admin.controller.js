@@ -5,15 +5,6 @@ import bcrypt from "bcryptjs";
 import AppError from "../utils/AppError.js";
 
 
-const sendResponse = (res, data, code = "00", success = true) => {
-    return res.status(200).json({
-        code,
-        successIndicator: success,
-        data
-    });
-};
-
-
 // ------------------- CREATE Influencer -------------------
 const createInfluencer = catchAsync(async (req, res, next) => {
     const { name, email, commissionRate, password } = req.body;
@@ -53,9 +44,9 @@ const updateInfluencer = catchAsync(async (req, res, next) => {
         { new: true }
     );
 
-    console.log("Result Inf Update", updated)
+
     if (!updated) {
-        return next(new AppError('Influencer not found', 304))
+        return next(new AppError('Influencer not found', 404))
     }
 
     res.status(200).json({
@@ -135,10 +126,7 @@ const listUsers = catchAsync(async (req, res) => {
 });
 
 
-// ===========================================
-// 2) GET /admin/users/:id (single user)
-// ===========================================
-const getSingleUser = catchAsync(async (req, res) => {
+const getSingleUser = catchAsync(async (req, res, next) => {
     const { id } = req.params;
 
     const user = await User.findById(id).select("-password");
@@ -153,10 +141,7 @@ const getSingleUser = catchAsync(async (req, res) => {
 });
 
 
-// ===========================================
-// 3) PUT /admin/users/:id  (update user)
-// ===========================================
-const updateUser = catchAsync(async (req, res) => {
+const updateUser = catchAsync(async (req, res, next) => {
     const { id } = req.params;
 
     const updates = req.body;
@@ -176,9 +161,6 @@ const updateUser = catchAsync(async (req, res) => {
 });
 
 
-// ===========================================
-// 4) DELETE /admin/users/:id (delete user)
-// ===========================================
 const deleteUser = catchAsync(async (req, res) => {
     const { id } = req.params;
 
@@ -234,10 +216,7 @@ const updateUserStatus = catchAsync(async (req, res) => {
 // });
 
 
-// ===================================================================
-// 7) GET /admin/influencers/metrics/:id (metrics API)
-// ===================================================================
-const getInfluencerMetrics = catchAsync(async (req, res) => {
+const getInfluencerMetrics = catchAsync(async (req, res, next) => {
     const { id } = req.params;
 
     const influencer = await Influencer.findById(id);

@@ -59,6 +59,51 @@ const getSingleProduct = catchAsync(async (req, res, next) => {
 
 });
 
+const searchProdByFilter = catchAsync(async (req, res, next) => {
+    const { category, minPrice, maxPrice, status, saleType, keyword, page = 1, limit = 10 } = req.query;
+
+    const filters = {};
+
+    if (category) filters.categories = category;
+    if (status) filters.status = status;
+    if (saleType) filters.saleType = saleType;
+
+    if (minPrice || maxPrice) {
+        filters.price = {};
+        if (minPrice) filters.price.$gte = Number(minPrice);
+        if (maxPrice) filters.price.$lte = Number(maxPrice);
+    }
+
+    if (keyword) {
+        filters.$or = [
+            { name: { $regex: keyword, $options: "i" } },
+            { description: { $regex: keyword, $options: "i" } },
+        ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    console.log("Filter visually ======>", filters)
+
+    const products = await Product.find(filters)
+        .skip(skip)
+        .limit(Number(limit));
+
+    const total = await Product.countDocuments(filters);
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: "success",
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / limit),
+        data: products
+    });
+
+});
+
+
 const getProductsByOwner = catchAsync(async (req, res, next) => {
     const filter = {};
     if (req.params.id) filter.ownerId = req.params.id;
@@ -169,7 +214,7 @@ const addProductToFavourite = catchAsync(async (req, res, next) => {
 
 
 const getBuyerFavourites = catchAsync(async (req, res, next) => {
-    const buyerId = req.params.id;
+    const buyerId = req.params.buyerId;
 
     const items = await Favourite.find({ buyerId });
     if (!items) {
@@ -202,7 +247,7 @@ const getBuyerFavourites = catchAsync(async (req, res, next) => {
 const removeItemFromFav = catchAsync(async (req, res, next) => {
     const itemId = req.params.itemId;
 
-    const deleted = await Favourite.findByIdAndDelete({ itemId });
+    const deleted = await Favourite.findByIdAndDelete(itemId);
     if (!deleted) {
         return next(new AppError("No Favourite Items", 404));
     }
@@ -216,4 +261,4 @@ const removeItemFromFav = catchAsync(async (req, res, next) => {
 
 
 
-export { createProduct, getProductByStatus, getSingleProduct, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct, addProductToFavourite, getBuyerFavourites, removeItemFromFav, getSingleFavouriteItem }
+export { createProduct, getProductByStatus, getSingleProduct, searchProdByFilter, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct, addProductToFavourite, getBuyerFavourites, removeItemFromFav }

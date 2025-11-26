@@ -75,13 +75,9 @@ const acceptBid = catchAsync(async (req, res, next) => {
 
     const bid = await Bid.findById(bidId)
     if (!bid) {
-
         return next(new AppError('No Bids found with bid id', 404))
     }
     let cartItem;
-
-    console.log("This is the user", req?.user?.id);
-    console.log("This is the Bid Assigned to", bid?.assignedTo);
 
     const buyerId = bid?.buyerId;
     const productId = bid?.productId;
@@ -98,6 +94,8 @@ const acceptBid = catchAsync(async (req, res, next) => {
             await bid.save();
         cartItem = await createCartItem(bid, req.user.id);
 
+
+        console.log("Buyer Id", buyerId.toString())
         io.to(buyerId.toString()).emit("bidAccepted", {
             message: "Bid Accepted",
             bidId,
@@ -125,10 +123,15 @@ const rejectBid = catchAsync(async (req, res, next) => {
 
     const bid = await Bid.findById(bidId)
 
-    if (bid?.assignedTo === req?.user?.id) {
+    if (!bid) {
+        return next(new AppError('No Bids found with bid id', 404))
+    }
+
+    
+    if (bid?.assignedTo.toString() === req?.user?.id) {
         await Bid.findByIdAndDelete(bidId);
 
-        io.to(buyerId.toString()).emit("bidRejected", {
+        io.to(bid?.buyerId.toString()).emit("bidRejected", {
             message: "Bid Rejected",
             bidId,
             productId: bid?.productId,

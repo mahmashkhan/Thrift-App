@@ -1,19 +1,21 @@
 import { Router } from "express";
-import { createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, updateProductData, updateProductStatus } from "../controllers/product.controller.js";
+import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus } from "../controllers/product.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
 const router = Router();
 
 
-router.post("/create", verifyToken, createProduct);
-router.get("/get", getProductByStatus);
-router.get("/:id", getSingleProduct);
-router.get("/owner/:id", getProductsByOwner);
-router.put("/update/:id", updateProductData);
-router.put("/update/status/:id", updateProductStatus);
-router.delete("/delete/:id", deleteProduct);
+router.post("/create", allowedUsers("admin", "seller"), createProduct);
+router.get("/get", allowedUsers("admin", "seller"), getProductByStatus);
+router.get("/search", allowedUsers(), searchProdByFilter);
+router.get("/:id", allowedUsers(), getSingleProduct);
+router.get("/owner/:id", allowedUsers("admin", "seller", "influencer"), getProductsByOwner);
+router.put("/update/:id", allowedUsers("admin", "seller"), updateProductData);
+router.put("/update/status/:id", allowedUsers("admin"), updateProductStatus);
+router.delete("/delete/:id", allowedUsers("admin", "seller"), deleteProduct);
 
-router.post("/favourite/add", addProductToFavourite);
-router.get("/favourite/get/:buyerId", getBuyerFavourites);
+router.post("/favourite/add", allowedUsers(), addProductToFavourite);
+router.get("/favourite/get/:buyerId", allowedUsers(), getBuyerFavourites);
+router.delete("/favourite/remove/:itemId", allowedUsers(). removeItemFromFav);
 // router.get("/favourite/get/item/:item", addProductToFavourite);
 
 // router.get("/get/inf/product", getAllProducts);
