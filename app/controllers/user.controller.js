@@ -11,11 +11,7 @@ dotenv.config();
 
 
 const createUser = catchAsync(async (req, res, next) => {
-<<<<<<< HEAD
-    const { name, email, password, role } = req.body;
-=======
     const { name, email, password, role, phone, address,image } = req.body;
->>>>>>> origin/recover-branch
 
     const userExist = await User.findOne({ email });
     if (userExist) {
@@ -23,11 +19,7 @@ const createUser = catchAsync(async (req, res, next) => {
     }
 
     // 2. Generate & store OTP in memory
-<<<<<<< HEAD
-    const otp = await generateAndStoreOtp({ name, email, password, role });
-=======
     const otp = await generateAndStoreOtp({ name, email, password, role, phone, address,image });
->>>>>>> origin/recover-branch
 
     // 3. Send OTP email
     await sendOtpEmail({ name, email, otp });
@@ -59,12 +51,6 @@ const verifyOTP = catchAsync(async (req, res, next) => {
 
     // Create user
     const newUser = new User({
-<<<<<<< HEAD
-        name: otpData.name,
-        email: email,
-        password: hashedPassword,
-        role: otpData.role,
-=======
         name: otpData?.name,
         email: email,
         password: hashedPassword,
@@ -72,7 +58,6 @@ const verifyOTP = catchAsync(async (req, res, next) => {
         phone: otpData?.phone,
         address: otpData?.address,
         image: otpData?.image,
->>>>>>> origin/recover-branch
         isVerified: true
     });
 
@@ -93,11 +78,6 @@ const verifyOTP = catchAsync(async (req, res, next) => {
 // loginUser.js
 const loginUser = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
-<<<<<<< HEAD
-
-=======
-    console.log(req.body, "---")
->>>>>>> origin/recover-branch
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
     }
@@ -110,12 +90,8 @@ const loginUser = catchAsync(async (req, res, next) => {
     console.log("User", user.password);
     console.log("Raw", password);
 
-<<<<<<< HEAD
-    const isMatch = await bcrypt.compare('1234', user.password);
-=======
     const isMatch = await bcrypt.compare(password, user.password);
     console.log("isMatch====", isMatch)
->>>>>>> origin/recover-branch
     // console.log("Is Match is ==========>", isMatch);
     if (!isMatch) {
         return res.status(400).json({ message: "Invalid email or password" });
@@ -133,15 +109,6 @@ const loginUser = catchAsync(async (req, res, next) => {
             role: user.role,
             token
         },
-<<<<<<< HEAD
-        
-    });
-});
-
-
-
-export { createUser, loginUser, verifyOTP }
-=======
 
     });
 });
@@ -168,4 +135,3 @@ const logOut = catchAsync(async (req, res) => {
 
 
 export { createUser, loginUser, verifyOTP,logOut }
->>>>>>> origin/recover-branch

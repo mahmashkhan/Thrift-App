@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus } from "../controllers/product.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
+import { allowedUsers } from "../validation/validation.js";
 const router = Router();
 
 
@@ -15,7 +16,7 @@ router.delete("/delete/:id", allowedUsers("admin", "seller"), deleteProduct);
 
 router.post("/favourite/add", allowedUsers(), addProductToFavourite);
 router.get("/favourite/get/:buyerId", allowedUsers(), getBuyerFavourites);
-router.delete("/favourite/remove/:itemId", allowedUsers(). removeItemFromFav);
+router.delete("/favourite/remove/:itemId", allowedUsers(), removeItemFromFav);
 // router.get("/favourite/get/item/:item", addProductToFavourite);
 
 // router.get("/get/inf/product", getAllProducts);

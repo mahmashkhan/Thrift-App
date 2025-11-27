@@ -5,18 +5,6 @@ import bcrypt from "bcryptjs";
 import AppError from "../utils/AppError.js";
 
 
-<<<<<<< HEAD
-=======
-const sendResponse = (res, data, code = "00", success = true) => {
-    return res.status(200).json({
-        code,
-        successIndicator: success,
-        data
-    });
-};
-
-
->>>>>>> origin/recover-branch
 // ------------------- CREATE Influencer -------------------
 const createInfluencer = catchAsync(async (req, res, next) => {
     const { name, email, commissionRate, password } = req.body;
@@ -32,11 +20,7 @@ const createInfluencer = catchAsync(async (req, res, next) => {
         name,
         email,
         commissionRate,
-<<<<<<< HEAD
         status: "active",
-=======
-        status: "active", 
->>>>>>> origin/recover-branch
         password: hashedPassword,
     });
 
@@ -60,15 +44,9 @@ const updateInfluencer = catchAsync(async (req, res, next) => {
         { new: true }
     );
 
-<<<<<<< HEAD
 
     if (!updated) {
         return next(new AppError('Influencer not found', 404))
-=======
-    console.log("Result Inf Update", updated)
-    if (!updated) {
-        return next(new AppError('Influencer not found', 304))
->>>>>>> origin/recover-branch
     }
 
     res.status(200).json({
@@ -93,11 +71,7 @@ const getInfluencers = catchAsync(async (req, res) => {
 
 
 // ------------------- GET Single Influencer -------------------
-<<<<<<< HEAD
-const getSinglInfluencer = catchAsync(async (req, res) => {
-=======
 const getSinglInfluencer = catchAsync(async (req, res,next) => {
->>>>>>> origin/recover-branch
     const { id } = req.params;
 
     const user = await Influencer.findById(id);
@@ -152,14 +126,7 @@ const listUsers = catchAsync(async (req, res) => {
 });
 
 
-<<<<<<< HEAD
 const getSingleUser = catchAsync(async (req, res, next) => {
-=======
-// ===========================================
-// 2) GET /admin/users/:id (single user)
-// ===========================================
-const getSingleUser = catchAsync(async (req, res,next) => {
->>>>>>> origin/recover-branch
     const { id } = req.params;
 
     const user = await User.findById(id).select("-password");
@@ -174,14 +141,7 @@ const getSingleUser = catchAsync(async (req, res,next) => {
 });
 
 
-<<<<<<< HEAD
 const updateUser = catchAsync(async (req, res, next) => {
-=======
-// ===========================================
-// 3) PUT /admin/users/:id  (update user)
-// ===========================================
-const updateUser = catchAsync(async (req, res,next) => {
->>>>>>> origin/recover-branch
     const { id } = req.params;
 
     const updates = req.body;
@@ -201,14 +161,7 @@ const updateUser = catchAsync(async (req, res,next) => {
 });
 
 
-<<<<<<< HEAD
 const deleteUser = catchAsync(async (req, res) => {
-=======
-// ===========================================
-// 4) DELETE /admin/users/:id (delete user)
-// ===========================================
-const deleteUser = catchAsync(async (req, res,next) => {
->>>>>>> origin/recover-branch
     const { id } = req.params;
 
     const user = await User.findByIdAndDelete(id);
@@ -224,11 +177,7 @@ const deleteUser = catchAsync(async (req, res,next) => {
 });
 
 
-<<<<<<< HEAD
-const updateUserStatus = catchAsync(async (req, res) => {
-=======
 const updateUserStatus = catchAsync(async (req, res,next) => {
->>>>>>> origin/recover-branch
     const { id } = req.params;
     const { status, reason } = req.body;
 
@@ -267,14 +216,7 @@ const updateUserStatus = catchAsync(async (req, res,next) => {
 // });
 
 
-<<<<<<< HEAD
 const getInfluencerMetrics = catchAsync(async (req, res, next) => {
-=======
-// ===================================================================
-// 7) GET /admin/influencers/metrics/:id (metrics API)
-// ===================================================================
-const getInfluencerMetrics = catchAsync(async (req, res,next) => {
->>>>>>> origin/recover-branch
     const { id } = req.params;
 
     const influencer = await Influencer.findById(id);

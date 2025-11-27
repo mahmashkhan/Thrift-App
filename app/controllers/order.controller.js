@@ -16,17 +16,10 @@ const createBid = catchAsync(async (req, res, next) => {
 
 
     if (!product) {
-<<<<<<< HEAD
         return next(new AppError('Prodcut Not found', 404))
     }
 
     let assignedTo = null;
-=======
-        return next(new AppError('Product Not found', 404))
-    }
-
-    let assignedTo = null; 
->>>>>>> origin/recover-branch
 
     if (product.saleType === "self") {
         assignedTo = product.sellerId; // directly to seller
@@ -37,16 +30,8 @@ const createBid = catchAsync(async (req, res, next) => {
         assignedTo = adminId; // admin user ID
     }
 
-<<<<<<< HEAD
 
     const bid = await Bid.create({
-=======
-    io.to(assignedTo.toString()).emit("Test", {
-        message: "User called us",
-    })
-
-    await Bid.create({
->>>>>>> origin/recover-branch
         productId,
         buyerId: req?.user?.id,
         sellerId: product.ownerId,
@@ -56,7 +41,6 @@ const createBid = catchAsync(async (req, res, next) => {
         itemQuantity
     });
 
-<<<<<<< HEAD
     io.to(assignedTo.toString()).emit("newBid", {
         message: "New bid received ===========>>> ",
         bidId: bid._id,
@@ -65,8 +49,6 @@ const createBid = catchAsync(async (req, res, next) => {
         priceOffered
     });
 
-=======
->>>>>>> origin/recover-branch
 
     res.status(201).json({
         code: "00",
@@ -93,20 +75,10 @@ const acceptBid = catchAsync(async (req, res, next) => {
 
     const bid = await Bid.findById(bidId)
     if (!bid) {
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/recover-branch
         return next(new AppError('No Bids found with bid id', 404))
     }
     let cartItem;
 
-<<<<<<< HEAD
-=======
-    console.log("This is the user", req?.user?.id);
-    console.log("This is the Bid Assigned to", bid?.assignedTo);
-
->>>>>>> origin/recover-branch
     const buyerId = bid?.buyerId;
     const productId = bid?.productId;
 
@@ -121,7 +93,6 @@ const acceptBid = catchAsync(async (req, res, next) => {
         bid.status = "accepted",
             await bid.save();
         cartItem = await createCartItem(bid, req.user.id);
-<<<<<<< HEAD
 
 
         console.log("Buyer Id", buyerId.toString())
@@ -132,8 +103,6 @@ const acceptBid = catchAsync(async (req, res, next) => {
             priceOffered: bid.priceOffered,
         });
 
-=======
->>>>>>> origin/recover-branch
     } else {
         return next(new AppError('You are not allowed to accept bid', 401))
     }
@@ -154,7 +123,6 @@ const rejectBid = catchAsync(async (req, res, next) => {
 
     const bid = await Bid.findById(bidId)
 
-<<<<<<< HEAD
     if (!bid) {
         return next(new AppError('No Bids found with bid id', 404))
     }
@@ -169,13 +137,6 @@ const rejectBid = catchAsync(async (req, res, next) => {
             productId: bid?.productId,
             priceOffered: bid.priceOffered,
         });
-=======
-    console.log("This is the user", req?.user?.id);
-    console.log("This is the Bid", bid?.assignedTo);
-
-    if (bid?.assignedTo === req?.user?.id) {
-        await Bid.findByIdAndDelete(bidId);
->>>>>>> origin/recover-branch
         // bid.status = "rejected"
         // await bid.save();
     } else {
@@ -186,12 +147,6 @@ const rejectBid = catchAsync(async (req, res, next) => {
         code: "00",
         successIndicator: true,
         data: bid
-    });
-
-    res.status(201).json({
-        code: "00",
-        successIndicator: true,
-        message: "Bid Rejected Successfully"
     });
 });
 
@@ -386,7 +341,3 @@ const getProductOrders = async (req, res, next) => {
 export { createBid, getProductBids, acceptBid, rejectBid, addToCart, ViewCart, checkOut, getBuyerOrders, getOwnerOrders, getProductOrders }
 
 
-<<<<<<< HEAD
-=======
- 
->>>>>>> origin/recover-branch
