@@ -3,12 +3,12 @@ import { createUser, loginUser, logOut, verifyOTP } from "../controllers/user.co
 import { signupValidation } from "../validation/user.validation.js";
 import { getProfile,editProfile,deleteProfile } from "../controllers/profile.controller.js";
 import { validate } from "../middleware/validate.params.js";
-import {loginValidator,signupValidator} from "../validators/auth.validators.js"
+import {loginValidator,signupValidator,otpValidator} from "../validators/auth.validators.js"
 const router = Router();
 
 
 router.post("/create",validate(signupValidator), createUser);
-router.post('/verify/otp', verifyOTP);
+router.post('/verify/otp', validate(otpValidator),verifyOTP);
 router.post("/login",validate(loginValidator), loginUser);
 router.post("/logout", logOut);
 

@@ -2,8 +2,8 @@ import Joi from "joi";
 
 export const influencerValidators = Joi.object({
     name: Joi.string().required(),
-    email: Joi.string().email().required(),
-    commissionRate: Joi.string().required(),
+    email: Joi.string().required(),
+    commissionRate: Joi.number().required(),
     password: Joi.string().required(),
 
 })
