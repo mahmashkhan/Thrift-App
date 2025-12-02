@@ -61,6 +61,10 @@ const ProductSchema = new mongoose.Schema(
       default: null
     }
   },
+  {
+    tags: { type: Array, default: null }
+  },
+
   { timestamps: true }
 );
 

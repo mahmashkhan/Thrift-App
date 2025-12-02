@@ -13,8 +13,8 @@ export const signupValidator = Joi.object({
         .valid("admin", "seller", "buyer")
         .required(),
     phone: Joi.string().length(11).required(),
-    address: Joi.string().required(),
-    image: Joi.string().required()
+    address: Joi.string().optional().allow(""),
+    image: Joi.string().optional().allow("")
 
 })
 
@@ -24,5 +24,11 @@ export const otpValidator = Joi.object({
         .length(4)
         .pattern(/^[0-9]{4}$/)
         .required()
+
+})
+
+export const editProfileValidator = Joi.object({
+    name: Joi.string().optional().allow(""),
+    password: Joi.string().optional().allow("")
 
 }) 

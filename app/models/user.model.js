@@ -42,8 +42,8 @@ const UserSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: [ "active", "suspended", "rejected"],
-            default: "active"
+            enum: [ "active", "suspended", "rejected","inactive"],
+            default: "inactive"
         },
 
         isVerified: {

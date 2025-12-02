@@ -19,10 +19,14 @@ const createBid = catchAsync(async (req, res, next) => {
         return next(new AppError('Prodcut Not found', 404))
     }
 
+     if (product.ownerId.toString() === req.user.id.toString()) {
+        return next(new AppError('You cannot bid on your own product', 400));
+    }
+
     let assignedTo = null;
 
     if (product.saleType === "self") {
-        assignedTo = product.sellerId; // directly to seller
+        assignedTo = product.ownerId; // directly to seller
     } else {
         const admin = await User.findOne({ role: "admin" });
         const adminId = admin._id;
@@ -53,7 +57,7 @@ const createBid = catchAsync(async (req, res, next) => {
     res.status(201).json({
         code: "00",
         successIndicator: "success",
-        data: product
+        data: bid
     });
 });
 
@@ -102,6 +106,7 @@ const acceptBid = catchAsync(async (req, res, next) => {
             productId,
             priceOffered: bid.priceOffered,
         });
+        await Bid.findByIdAndDelete(bidId);   //remove bid
 
     } else {
         return next(new AppError('You are not allowed to accept bid', 401))

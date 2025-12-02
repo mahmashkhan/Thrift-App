@@ -7,7 +7,7 @@ import AppError from "../utils/AppError.js";
 
 // ------------------- CREATE Influencer -------------------
 const createInfluencer = catchAsync(async (req, res, next) => {
-    const { name, email, commissionRate, password } = req.body;
+    const { name, email, commissionRate, password, image } = req.body;
     const userExist = await Influencer.findOne({ email });
 
     if (userExist) {
@@ -19,6 +19,7 @@ const createInfluencer = catchAsync(async (req, res, next) => {
     const newUser = await Influencer.create({
         name,
         email,
+        image,
         commissionRate,
         status: "active",
         password: hashedPassword,

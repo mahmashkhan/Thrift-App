@@ -7,6 +7,14 @@ import catchAsync from "../utils/catchAsync.js";
 const createProduct = catchAsync(async (req, res, next) => {
     let { saleType, ownerId, ...rest } = req.body;
 
+    const allowedRoles = ["seller", "influencer", "admin"];
+
+    if (!allowedRoles.includes(req.user.role)) {
+        return next(new AppError("You are not allowed to create a product", 403));
+    }
+    if (req.user.role === "seller" && req.user.status !== "active") {
+        return next(new AppError("Your seller account is not active. Contact support.", 403));
+    }
     if (saleType === "self" || saleType === "sellForMe") {
         ownerId = req.user.id;
     } else if (saleType === "influencer") {
@@ -126,7 +134,7 @@ const getProductsByOwner = catchAsync(async (req, res, next) => {
 
 
 
-const updateProductData = async (req, res) => {
+const updateProductData = async (req, res,next) => {
     const updated = await Product.findByIdAndUpdate(
         req.params.id,
         req.body,
@@ -191,7 +199,7 @@ const addProductToFavourite = catchAsync(async (req, res, next) => {
 
     const product = await Product.findById(productId);
     if (!product) {
-        return next(new AppError('Prodcut Not found', 404))
+        return next(new AppError('Product Not found', 404))
     }
 
     const existingItem = await Favourite.findOne({ buyerId, productId });

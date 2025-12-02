@@ -28,6 +28,11 @@ const InfluencerSchema = new mongoose.Schema(
             required: true,
             minlength: 6,
         },
+        image: {
+            type: String,
+            // required: true,
+
+        },
         // OPTIONAL fields for metrics
         campaigns_run: { type: Number, default: 0 },
         total_referrals: { type: Number, default: 0 },

@@ -2,15 +2,18 @@ import { Router } from "express";
 import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus } from "../controllers/product.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { allowedUsers } from "../validation/validation.js";
+import { validate } from "../middleware/validate.params.js";
+import { productValidator,productUpdateValidator } from "../validators/product.validators.js";
+
 const router = Router();
 
 
-router.post("/create", allowedUsers("admin", "seller"), createProduct);
+router.post("/create",validate(productValidator), allowedUsers("admin", "seller"), createProduct);
 router.get("/get", allowedUsers("admin", "seller"), getProductByStatus);
 router.get("/search", allowedUsers(), searchProdByFilter);
 router.get("/:id", allowedUsers(), getSingleProduct);
 router.get("/owner/:id", allowedUsers("admin", "seller", "influencer"), getProductsByOwner);
-router.put("/update/:id", allowedUsers("admin", "seller"), updateProductData);
+router.put("/update/:id",validate(productUpdateValidator), allowedUsers("admin", "seller"), updateProductData);
 router.put("/update/status/:id", allowedUsers("admin"), updateProductStatus);
 router.delete("/delete/:id", allowedUsers("admin", "seller"), deleteProduct);
 

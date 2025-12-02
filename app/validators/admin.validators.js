@@ -5,6 +5,7 @@ export const influencerValidators = Joi.object({
     email: Joi.string().required(),
     commissionRate: Joi.number().required(),
     password: Joi.string().required(),
+    image: Joi.string().required(),
 
 })
 
@@ -20,3 +21,21 @@ export const policyValidator = Joi.object({
     type: Joi.string().required(),
 
 })
+
+export const updateUserValidator = Joi.object({
+
+    name: Joi.string().optional().allow(""),
+    role: Joi.string().optional().allow(""),
+    status: Joi.string().optional().allow(""),
+    // isVerified: Joi.string().optional().allow(""),
+
+})
+
+// export const influencerValidators = Joi.object({
+
+//     name: Joi.string().optional().allow(""),
+//     role: Joi.string().optional().allow(""),
+//     status: Joi.string().optional().allow(""),
+//     // isVerified: Joi.string().optional().allow(""),
+
+// })

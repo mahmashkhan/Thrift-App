@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
 import bcrypt from "bcrypt";
+import catchAsync from "../utils/catchAsync.js";
 
 // ====================== GET PROFILE ======================
 const getProfile = async (req, res, next) => {
@@ -71,29 +72,42 @@ const editProfile = async (req, res, next) => {
 
 
 // ====================== DELETE PROFILE ======================
-const deleteProfile = async (req, res, next) => {
-    try {
-        const { id } = req.params;
+const deleteProfile = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
 
-        if (!id) {
-            return next(new AppError('User ID is required', 400));
-        }
-
-        const deletedUser = await User.findByIdAndDelete(id);
-
-        if (!deletedUser) {
-            return next(new AppError('User not found', 404));
-        }
-
-        res.status(200).json({
-            code: "00",
-            successIndicator: "success",
-            message: "User deleted successfully"
-        });
-
-    } catch (err) {
-        next(err);
+    if (!id) {
+        return next(new AppError("User ID is required", 400));
     }
-};
+// console.log(req.user.id)
+
+    if (!req.user) {
+        return next(new AppError("Unauthorized: user not logged in", 401));
+    }
+
+
+    const userToDelete = await User.findById(id);
+    if (!userToDelete) {
+        return next(new AppError("User not found", 404));
+    }
+
+
+     const isOwner = req.user.id.toString() === id.toString();
+
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+        return next(new AppError("You are not allowed to delete this account", 403));
+    }
+
+
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({
+        code: "00",
+        successIndicator: "success",
+        message: "Account deleted successfully"
+    });
+});
+
 
 export { getProfile, editProfile, deleteProfile };
