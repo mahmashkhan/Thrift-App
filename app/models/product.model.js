@@ -2,13 +2,13 @@ import mongoose from "mongoose";
 
 const ProductSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
+    title: { type: String, required: true },
     description: { type: String },
 
     price: { type: Number, required: true },
-    images: [{ type: String }], // uploaded to S3 or Cloud
+    imageUrls: [{ type: String }], // uploaded to S3 or Cloud
 
-    categories: [{ type: String }],
+    categories: [{ type: Array, default: null }],
 
     // // Who originally created this product (seller or influencer)
     ownerId: {
@@ -25,11 +25,11 @@ const ProductSchema = new mongoose.Schema(
     },
 
     // If influencer is promoting another product
-    parentProductId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-      default: null
-    },
+    // parentProductId: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Product",
+    //   default: null
+    // },
 
     // Who manages shipping & order flow
     managedBy: {
@@ -55,11 +55,11 @@ const ProductSchema = new mongoose.Schema(
     stock: { type: Number, default: 1 },
 
     // Track who approved product
-    approvedByAdmin: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null
-    }
+    // approvedByAdmin: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "User",
+    //   default: null
+    // }
   },
   {
     tags: { type: Array, default: null }

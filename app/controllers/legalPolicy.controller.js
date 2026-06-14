@@ -1,4 +1,5 @@
 import LegalPolicy from "../models/legal.policies.model.js";
+import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 
 // ==============================
 // Unified response helper
@@ -14,12 +15,13 @@ const sendResponse = (res, data, code = "00", success = true) => {
 // ==============================
 // Create Policy
 // ==============================
- const createPolicy = async (req, res) => {
+const createPolicy = async (req, res) => {
   try {
     const policy = await LegalPolicy.create(req.body);
-    return sendResponse(res, {
-      message: "Policy created successfully",
-      policy // includes _id
+    res.status(200).json({
+      status: "success",
+      responseCode: "00",
+      data: sanitizeResponse(policy)
     });
   } catch (error) {
     return sendResponse(res, { message: error.message }, "01", false);
@@ -29,7 +31,7 @@ const sendResponse = (res, data, code = "00", success = true) => {
 // ==============================
 // Get all Policies
 // ==============================
- const getAllPolicies = async (req, res) => {
+const getAllPolicies = async (req, res) => {
   try {
     const policies = await LegalPolicy.find();
     return sendResponse(res, {
@@ -44,14 +46,19 @@ const sendResponse = (res, data, code = "00", success = true) => {
 // ==============================
 // Get Policy by ID
 // ==============================
- const getPolicyById = async (req, res) => {
+const getPolicyById = async (req, res) => {
   try {
     const policy = await LegalPolicy.findById(req.params.id);
     if (!policy) {
       return sendResponse(res, { message: "Policy not found" }, "01", false);
     }
-    return sendResponse(res, policy);
+    res.status(200).json({
+      status: "success",
+      responseCode: "00",
+      data: sanitizeResponse(policy)
+    });
   } catch (error) {
+
     return sendResponse(res, { message: error.message }, "01", false);
   }
 };
@@ -59,7 +66,7 @@ const sendResponse = (res, data, code = "00", success = true) => {
 // ==============================
 // Update Policy
 // ==============================
- const updatePolicy = async (req, res) => {
+const updatePolicy = async (req, res) => {
   try {
     const updated = await LegalPolicy.findByIdAndUpdate(
       req.params.id,
@@ -69,9 +76,10 @@ const sendResponse = (res, data, code = "00", success = true) => {
     if (!updated) {
       return sendResponse(res, { message: "Policy not found" }, "01", false);
     }
-    return sendResponse(res, {
-      message: "Policy updated successfully",
-      policy: updated
+    res.status(200).json({
+      status: "success",
+      responseCode: "00",
+      data: sanitizeResponse(updated)
     });
   } catch (error) {
     return sendResponse(res, { message: error.message }, "01", false);
@@ -81,13 +89,17 @@ const sendResponse = (res, data, code = "00", success = true) => {
 // ==============================
 // Delete Policy
 // ==============================
- const deletePolicy = async (req, res) => {
+const deletePolicy = async (req, res) => {
   try {
     const deleted = await LegalPolicy.findByIdAndDelete(req.params.id);
     if (!deleted) {
       return sendResponse(res, { message: "Policy not found" }, "01", false);
     }
-    return sendResponse(res, { message: "Policy deleted successfully" });
+    res.status(200).json({
+      status: "success",
+      responseCode: "00",
+      message: "Policy Deleted Successfully"
+    });
   } catch (error) {
     return sendResponse(res, { message: error.message }, "01", false);
   }
@@ -95,9 +107,9 @@ const sendResponse = (res, data, code = "00", success = true) => {
 
 
 export {
-    deletePolicy,
-    updatePolicy,
-    getPolicyById,
-    getAllPolicies,
-    createPolicy
+  deletePolicy,
+  updatePolicy,
+  getPolicyById,
+  getAllPolicies,
+  createPolicy
 }

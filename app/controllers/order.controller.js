@@ -7,6 +7,7 @@ import catchAsync from "../utils/catchAsync.js";
 import { createCartItem } from "../utils/createCartItem.js";
 import Order from "../models/order.model.js";
 import { io } from "../server.js";
+import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 
 
 const createBid = catchAsync(async (req, res, next) => {
@@ -14,12 +15,11 @@ const createBid = catchAsync(async (req, res, next) => {
 
     const product = await Product.findById(productId);
 
-
     if (!product) {
-        return next(new AppError('Prodcut Not found', 404))
+        return next(new AppError('Product Not found', 404))
     }
 
-     if (product.ownerId.toString() === req.user.id.toString()) {
+    if (product.ownerId.toString() === req.user.id.toString()) {
         return next(new AppError('You cannot bid on your own product', 400));
     }
 
@@ -55,9 +55,9 @@ const createBid = catchAsync(async (req, res, next) => {
 
 
     res.status(201).json({
-        code: "00",
-        successIndicator: "success",
-        data: bid
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(bid)
     });
 });
 
@@ -67,9 +67,9 @@ const getProductBids = catchAsync(async (req, res) => {
     const bids = await Bid.find({ productId })
 
     res.status(200).json({
-        status: "00",
-        message: "success",
-        data: bids
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(bids)
     });
 });
 
@@ -113,11 +113,9 @@ const acceptBid = catchAsync(async (req, res, next) => {
     }
 
     res.status(201).json({
-        code: "00",
-        successIndicator: "success",
-        data: {
-            cart: cartItem
-        }
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(cartItem)
     });
 });
 
@@ -132,7 +130,7 @@ const rejectBid = catchAsync(async (req, res, next) => {
         return next(new AppError('No Bids found with bid id', 404))
     }
 
-    
+
     if (bid?.assignedTo.toString() === req?.user?.id) {
         await Bid.findByIdAndDelete(bidId);
 
@@ -149,9 +147,9 @@ const rejectBid = catchAsync(async (req, res, next) => {
     }
 
     res.status(201).json({
-        code: "00",
-        successIndicator: true,
-        data: bid
+        responseCode: "00",
+        status: "success",
+        message: "Bid Rejected Successfully"
     });
 });
 
@@ -190,9 +188,9 @@ const addToCart = catchAsync(async (req, res, next) => {
     });
 
     res.status(201).json({
-        code: "00",
-        successIndicator: true,
-        data: product
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(product)
     });
 });
 
@@ -200,15 +198,14 @@ const addToCart = catchAsync(async (req, res, next) => {
 const ViewCart = catchAsync(async (req, res, next) => {
     const { buyerId } = req.params;
 
-
     const cart = await Cart.find({ buyerId: buyerId })
 
     console.log("Cart Be Like", cart)
 
-    res.status(201).json({
-        code: "00",
-        successIndicator: true,
-        data: cart
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(cart)
     });
 });
 
@@ -271,9 +268,9 @@ const checkOut = catchAsync(async (req, res, next) => {
     await Cart.deleteMany({ buyerId });
 
     res.status(201).json({
-        code: "00",
-        successIndicator: "success",
-        data: order
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(order)
     });
 
 });
@@ -287,7 +284,12 @@ const getBuyerOrders = catchAsync(async (req, res, next) => {
         .sort({ createdAt: -1 });
 
 
-    res.status(200).json({ code: "00", successIndicator: "success", data: orders });
+    res.status(200)
+        .json({
+            responseCode: "00",
+            status: "success",
+            data: sanitizeResponse(orders)
+        });
 
 })
 
@@ -307,11 +309,18 @@ const getOwnerOrders = catchAsync(async (req, res, next) => {
         return next(new AppError("No orders found for this product", 404));
     }
 
+    const filteredOrders = orders.map(order => ({
+        ...order.toObject(),
+        items: order.items.filter(
+            item => item.productOwner.toString() === ownerId
+        )
+    }));
+
     res.status(200).json({
-        code: "00",
-        successIndicator: "success",
-        count: orders.length,
-        data: orders,
+        responseCode: "00",
+        status: "success",
+        // count: filteredOrders.length,
+        data: sanitizeResponse(filteredOrders),
     });
 })
 
@@ -332,11 +341,18 @@ const getProductOrders = async (req, res, next) => {
         return next(new AppError("No orders found for this product", 404));
     }
 
+    const filteredOrders = orders.map(order => ({
+        ...order.toObject(),
+        items: order.items.filter(
+            item => item.productId.toString() === productId
+        )
+    }));
+
     res.status(200).json({
-        code: "00",
-        successIndicator: "success",
-        count: orders.length,
-        data: orders,
+        responseCode: "00",
+        status: "success",
+        // count: filteredOrders?.length,
+        data: sanitizeResponse(filteredOrders),
     });
 };
 

@@ -2,16 +2,18 @@ import Favourite from "../models/favourite.model.js";
 import Product from "../models/product.model.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
+import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 
 
 const createProduct = catchAsync(async (req, res, next) => {
     let { saleType, ownerId, ...rest } = req.body;
 
-    const allowedRoles = ["seller", "influencer", "admin"];
+    // const allowedRoles = ["seller", "influencer", "admin"];
 
-    if (!allowedRoles.includes(req.user.role)) {
-        return next(new AppError("You are not allowed to create a product", 403));
-    }
+    // if (!allowedRoles.includes(req.user.role)) {
+    //     return next(new AppError("You are not allowed to create a product", 403));
+    // }
+
     if (req.user.role === "seller" && req.user.status !== "active") {
         return next(new AppError("Your seller account is not active. Contact support.", 403));
     }
@@ -33,9 +35,9 @@ const createProduct = catchAsync(async (req, res, next) => {
 
 
     res.status(201).json({
-        code: "00",
-        successIndicator: true,
-        data: product
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(product)
     });
 });
 
@@ -47,9 +49,9 @@ const getProductByStatus = catchAsync(async (req, res) => {
     const products = await Product.find(filter);
 
     res.status(200).json({
-        code: "00",
-        successIndicator: "success",
-        data: products
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(products)
     });
 });
 
@@ -60,9 +62,9 @@ const getSingleProduct = catchAsync(async (req, res, next) => {
     }
 
     res.status(200).json({
-        code: "00",
-        successIndicator: "success",
-        data: product
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(product)
     });
 
 });
@@ -125,9 +127,9 @@ const getProductsByOwner = catchAsync(async (req, res, next) => {
 
 
     res.status(200).json({
-        code: "00",
-        successIndicator: "success",
-        data: products
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(products)
     });
 
 });
@@ -146,9 +148,9 @@ const updateProductData = async (req, res,next) => {
     }
 
     res.status(201).json({
-        code: "00",
-        successIndicator: "success",
-        data: updated
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(updated)
     });
 };
 
@@ -170,9 +172,9 @@ const updateProductStatus = async (req, res, next) => {
     const updated = await product.save();
 
     res.status(201).json({
-        code: "00",
-        successIndicator: "success",
-        data: updated
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(updated)
     });
 
 };
@@ -188,8 +190,11 @@ const deleteProduct = catchAsync(async (req, res, next) => {
         return next(new AppError('Prodcut Not found', 404))
     }
 
-    return sendResponse(res, { message: "Product removed" });
-
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message: "The product deleted successfully"
+    });
 });
 
 

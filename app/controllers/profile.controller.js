@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
 import bcrypt from "bcrypt";
 import catchAsync from "../utils/catchAsync.js";
+import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 
 // ====================== GET PROFILE ======================
 const getProfile = async (req, res, next) => {
@@ -19,9 +20,9 @@ const getProfile = async (req, res, next) => {
         }
 
         res.status(200).json({
-            code: "00",
-            successIndicator: "success",
-            data: profile
+            status: "success",
+            responseCode: "00",
+            data: sanitizeResponse(profile)
         });
 
     } catch (err) {
@@ -34,13 +35,13 @@ const getProfile = async (req, res, next) => {
 const editProfile = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, password } = req.body;
+        const { name, password, imageUrl } = req.body;
 
         if (!id) {
             return next(new AppError("User ID is required", 400));
         }
 
-        let updatedFields = { name };
+        let updatedFields = { name, imageUrl };
 
         if (password) {
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -58,10 +59,9 @@ const editProfile = async (req, res, next) => {
         }
 
         res.status(200).json({
-            code: "00",
-            successIndicator: "success",
-            message: "Profile updated successfully",
-            data: updatedUser
+            responseCode: "00",
+            status: "success",
+            data: sanitizeResponse(updatedUser)
         });
 
     } catch (err) {
@@ -78,11 +78,11 @@ const deleteProfile = catchAsync(async (req, res, next) => {
     if (!id) {
         return next(new AppError("User ID is required", 400));
     }
-// console.log(req.user.id)
+    console.log("---------------------", req?.user?.id)
 
-    if (!req.user) {
-        return next(new AppError("Unauthorized: user not logged in", 401));
-    }
+    // if (!req.user) {
+    //     return next(new AppError("Unauthorized: user not logged in", 401));
+    // }
 
 
     const userToDelete = await User.findById(id);
@@ -91,20 +91,20 @@ const deleteProfile = catchAsync(async (req, res, next) => {
     }
 
 
-     const isOwner = req.user.id.toString() === id.toString();
+    // const isOwner = req.user.id.toString() === id.toString();
 
-    const isAdmin = req.user.role === "admin";
+    // const isAdmin = req.user.role === "admin";
 
-    if (!isOwner && !isAdmin) {
-        return next(new AppError("You are not allowed to delete this account", 403));
-    }
+    // if (!isOwner && !isAdmin) {
+    //     return next(new AppError("You are not allowed to delete this account", 403));
+    // }
 
 
     await User.findByIdAndDelete(id);
 
     res.status(200).json({
-        code: "00",
-        successIndicator: "success",
+        responseCode: "00",
+        status: "success",
         message: "Account deleted successfully"
     });
 });

@@ -23,32 +23,52 @@ const UserSchema = new mongoose.Schema(
 
         role: {
             type: String,
-            enum: ["buyer", "seller", "admin"],
+            enum: ["buyer", "seller", "admin", "influencer"],
             default: "buyer"
         },
+
         phone: {
             type: Number,
-            minlength: 11,
-            
         },
+
         address: {
             type: String,
-           
         },
+
         image: {
             type: String,
-           
         },
 
         status: {
             type: String,
-            enum: [ "active", "suspended", "rejected","inactive"],
+            enum: ["active", "inactive", "suspended", "rejected", "pending"],
             default: "inactive"
         },
 
         isVerified: {
             type: Boolean,
             default: false
+        },
+
+        // Influencer-specific fields
+        commissionRate: {
+            type: Number,
+            default: 0
+        },
+
+        campaigns_run: {
+            type: Number,
+            default: 0
+        },
+
+        total_referrals: {
+            type: Number,
+            default: 0
+        },
+
+        commission_earned: {
+            type: Number,
+            default: 0
         }
     },
     { timestamps: true }

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { acceptBid, addToCart, checkOut, createBid, getBuyerOrders, getOwnerOrders, getProductBids, getProductOrders, 
      rejectBid, ViewCart } from "../controllers/order.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
-import { allowedUsers } from "../validation/validation.js";
+import { allowedUsers } from "../middleware/authorizationMiddleware.js";
 
 const router = Router();
 

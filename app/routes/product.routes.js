@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus } from "../controllers/product.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
-import { allowedUsers } from "../validation/validation.js";
+import { allowedUsers } from "../middleware/authorizationMiddleware.js";
 import { validate } from "../middleware/validate.params.js";
 import { productValidator,productUpdateValidator } from "../validators/product.validators.js";
 

@@ -1,114 +1,12 @@
 import User from "../models/user.model.js";
-import Influencer from "../models/influencer.model.js";
 import catchAsync from "../utils/catchAsync.js";
 import bcrypt from "bcryptjs";
 import AppError from "../utils/AppError.js";
+import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 
-
-// ------------------- CREATE Influencer -------------------
-const createInfluencer = catchAsync(async (req, res, next) => {
-    const { name, email, commissionRate, password, image } = req.body;
-    const userExist = await Influencer.findOne({ email });
-
-    if (userExist) {
-        return next(new AppError("User already Exist", 409))
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await Influencer.create({
-        name,
-        email,
-        image,
-        commissionRate,
-        status: "active",
-        password: hashedPassword,
-    });
-
-    res.status(201).json({
-        code: "00",
-        successIndicator: true,
-        data: newUser
-    });
-});
-
-// ------------------- UPDATE Influencer -------------------
-const updateInfluencer = catchAsync(async (req, res, next) => {
-    const { id } = req.params;
-    const reqBody = req.body;
-
-    console.log("This is the body", reqBody)
-
-    const updated = await Influencer.findByIdAndUpdate(
-        id,
-        { ...reqBody },
-        { new: true }
-    );
-
-
-    if (!updated) {
-        return next(new AppError('Influencer not found', 404))
-    }
-
-    res.status(200).json({
-        code: "00",
-        successIndicator: 'success',
-        data: updated
-    });
-});
-
-
-// ------------------- GET All Influencers -------------------
-const getInfluencers = catchAsync(async (req, res) => {
-    const users = await Influencer.find();
-    res.status(200).json({
-        code: "00",
-        successIndicator: "success",
-        data: users
-    });
-});
-
-
-
-
-// ------------------- GET Single Influencer -------------------
-const getSinglInfluencer = catchAsync(async (req, res,next) => {
-    const { id } = req.params;
-
-    const user = await Influencer.findById(id);
-
-    if (!user) return next(new AppError("Influencer not found", 404));
-
-
-    res.status(200).json({
-        code: "00",
-        successIndicator: 'success',
-        data: user
-    });
-});
-
-// Delete Influencer
-const deleteInfluencer = catchAsync(async (req, res, next) => {
-    const { id } = req.params;
-
-    const deleted = await Influencer.findByIdAndDelete(id);
-
-    if (!deleted) return next(new AppError("Influencer not found", 404));
-
-    res.status(200).json({
-        code: "00",
-        successIndicator: 'success',
-        data: {
-            message: "Influencer deleted successfully",
-            deletedId: id
-        }
-    });
-});
 
 const listUsers = catchAsync(async (req, res) => {
     const { role, status, page = 1, limit = 10 } = req.query;
-
-    console.log("Roleeee", role);
 
     const filter = {};
     if (role) filter.role = role;
@@ -122,7 +20,7 @@ const listUsers = catchAsync(async (req, res) => {
     res.status(200).json({
         code: "00",
         successIndicator: 'success',
-        data: users
+        data: sanitizeResponse(users)
     });
 });
 
@@ -135,34 +33,146 @@ const getSingleUser = catchAsync(async (req, res, next) => {
 
 
     res.status(200).json({
-        code: "00",
-        successIndicator: 'success',
-        data: user
+        responseCode: "00",
+        status: 'success',
+        data: sanitizeResponse(user)
     });
 });
 
+
+// Controller
 
 const updateUser = catchAsync(async (req, res, next) => {
+
     const { id } = req.params;
 
-    const updates = req.body;
-
-    const user = await User.findByIdAndUpdate(id, updates, {
-        new: true
-    }).select("-password");
-
-    if (!user) return next(new AppError("User not found", 404));
+    const updates = { ...req.body };
 
 
-    res.status(201).json({
-        code: "00",
-        successIndicator: 'success',
-        data: user
+    // Find target user
+    const existingUser = await User.findById(id);
+
+    if (!existingUser) {
+        return next(
+            new AppError("User not found", 404)
+        );
+    }
+
+    // -----------------------------------------
+    // AUTHORIZATION
+    // -----------------------------------------
+
+    const isAdmin = req.user.role === "admin";
+
+    // Non-admin can only update themselves
+    if (
+        !isAdmin &&
+        req.user._id.toString() !== id
+    ) {
+        return next(
+            new AppError(
+                "You are not allowed to update this user",
+                403
+            )
+        );
+    }
+
+    // -----------------------------------------
+    // RESTRICT ADMIN-ONLY FIELDS
+    // -----------------------------------------
+
+    // Non-admins cannot update these fields
+    if (!isAdmin) {
+
+        delete updates.role;
+        delete updates.status;
+        delete updates.isVerified;
+
+        const influencerFields = [
+            "commissionRate",
+            "campaigns_run",
+            "total_referrals",
+            "commission_earned"
+        ];
+
+        // Only influencer/admin can update influencer fields
+        if (existingUser.role !== "influencer" && !isAdmin) {
+            influencerFields.forEach(field => {
+                delete updates[field];
+            });
+        }
+    }
+
+    // -----------------------------------------
+    // UPDATE USER
+    // -----------------------------------------
+
+    const updatedUser = await User.findByIdAndUpdate(
+        id,
+        updates,
+        {
+            new: true,
+            runValidators: true
+        }
+    ).select("-password -__v");
+
+    return res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(updatedUser)
     });
 });
 
 
-const deleteUser = catchAsync(async (req, res) => {
+// Controller
+
+const adminCreateUser = catchAsync(async (req, res, next) => {
+
+    const {
+        name,
+        email,
+        password,
+        role,
+        imageUrl,
+        commissionRate
+    } = req.body;
+
+    const userExist = await User.findOne({ email });
+
+    if (userExist) {
+        return next(
+            new AppError("User already exists", 409)
+        );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const payload = {
+        name,
+        email,
+        password: hashedPassword,
+        imageUrl,
+        role,
+
+        status: "active",
+        isVerified: true
+    };
+
+    // Add influencer-only fields
+    if (role === "influencer") {
+        payload.commissionRate = commissionRate;
+    }
+
+    const newUser = await User.create(payload);
+
+    return res.status(201).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(newUser)
+    });
+});
+
+const deleteUser = catchAsync(async (req, res, next) => {
     const { id } = req.params;
 
     const user = await User.findByIdAndDelete(id);
@@ -171,39 +181,13 @@ const deleteUser = catchAsync(async (req, res) => {
 
 
     res.status(200).json({
-        code: "00",
-        successIndicator: 'success',
-        data: user
+        responseCode: "00",
+        status: 'success',
+        message: "User Deleted Successfully"
     });
 });
 
 
-const updateUserStatus = catchAsync(async (req, res,next) => {
-    const { id } = req.params;
-    const { status, reason } = req.body;
-
-    // Check in both models
-    let user = await User.findById(id);
-    let isInfluencer = false;
-
-    if (!user) {
-        user = await Influencer.findById(id);
-        isInfluencer = true;
-    }
-
-    if (!user) return next(new AppError("User not found", 404));
-
-
-    user.status = status;
-    if (reason) user.reason = reason;
-    await user.save();
-
-    res.status(201).json({
-        code: "00",
-        successIndicator: 'success',
-        data: user
-    });
-});
 
 
 // ===================================================================
@@ -237,14 +221,8 @@ const getInfluencerMetrics = catchAsync(async (req, res, next) => {
 });
 
 export {
-    createInfluencer,
     getInfluencerMetrics,
-    getInfluencers,
-    getSinglInfluencer,
-    updateInfluencer,
-    deleteInfluencer,
-
-    updateUserStatus,
+    adminCreateUser,
     deleteUser,
     updateUser,
     getSingleUser,

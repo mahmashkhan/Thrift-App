@@ -3,14 +3,15 @@ import {
     listUsers,
     updateUser,
     deleteUser,
-    updateUserStatus,
+    // updateUserStatus,
     getInfluencerMetrics,
-    createInfluencer,
-    updateInfluencer,
-    getInfluencers,
-    getSinglInfluencer,
-    deleteInfluencer,
-    getSingleUser
+    // createInfluencer,
+    // updateInfluencer,
+    // getInfluencers,
+    // getSinglInfluencer,
+    // deleteInfluencer,
+    getSingleUser,
+    adminCreateUser
 } from "../controllers/admin.controller.js"
 import {
     createPolicy,
@@ -19,32 +20,28 @@ import {
     updatePolicy,
     deletePolicy
 } from "../controllers/legalPolicy.controller.js";
-import { allowedUsers } from "../validation/validation.js";
+import { allowedUsers } from "../middleware/authorizationMiddleware.js";
 import { validate } from "../middleware/validate.params.js";
 
 import {
-    influencerValidators,
-    statusValidator,
+    // influencerValidators,
+    // statusValidator,
     policyValidator,
-    updateUserValidator
+    updateUserValidator,
+    adminCreateUserValidator
 } from "../validators/admin.validators.js"
 const router = Router();
 
 //Influencer Management 
-router.post("/inf/create", validate(influencerValidators), allowedUsers("admin"), createInfluencer);
-router.get("/inf/get", allowedUsers("admin"), getInfluencers);
-router.get("/inf/get/:id", allowedUsers("admin", "influencer"), getSinglInfluencer);
-router.put("/inf/update/:id", allowedUsers("admin", "influencer"), updateInfluencer);
-router.delete("/inf/delete/:id", allowedUsers("admin", "influencer"), deleteInfluencer);
 router.get("/inf/metrics/:id", allowedUsers("admin", "influencer"), getInfluencerMetrics);
 
 
 // ==================================================
+router.post("/create-user", validate(adminCreateUserValidator), allowedUsers("admin"), adminCreateUser);
 router.get("/get/users", allowedUsers("admin"), listUsers);
 router.get("/get/user/:id", allowedUsers(), getSingleUser);
-router.put("/update/user/:id", validate(updateUserValidator), allowedUsers(), updateUser);
+router.put("/update/user/:id", validate(updateUserValidator), allowedUsers("admin", "buyer", "seller", "influencer"), updateUser);
 router.delete("/user/delete/:id", allowedUsers(), deleteUser);
-router.post("/update/users/status/:id", validate(statusValidator), allowedUsers("admin"), updateUserStatus);
 // router.get("/get/sellers/requests",  sellerRequests);
 
 // ================================================

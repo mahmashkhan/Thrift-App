@@ -23,8 +23,8 @@ const globalErrorHandler = (err, req, res, next) => {
   }
 
   res.status(err.statusCode || 500).json({
-    status: err.status || "error",
-    responseCode: err.responseCode || "00",
+    status: err.status || "fail",
+    responseCode: err.responseCode || "01",
     error: err.message || "Internal Server Error",
   });
 };
