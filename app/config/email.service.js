@@ -4,7 +4,7 @@ import otpStore from "../utils/otpStore.js";
 
 
 
-const generateAndStoreOtp = async ({ name, email, password, role, phone, address, image }) => {
+const generateAndStoreOtp = async ({ email }) => {
 
     // const otp = Math.floor(100000 + Math.random() * 900000);
     // const otpExpiry = Date.now() + 10 * 60 * 1000;
@@ -15,7 +15,7 @@ const generateAndStoreOtp = async ({ name, email, password, role, phone, address
 
     // console.log("Here is hashedPass", hashedPassword);
 
-    otpStore.set(email, { otp, name, password, role, otpExpiry, phone, address, image });
+    otpStore.set(email, { otp, otpExpiry });
 
     return otp;
 };
@@ -30,7 +30,7 @@ const sendOtpEmail = async ({ name, email, otp }) => {
     });
 
     const mailOptions = {
-        from: `"Marketplace" <${process.env.EMAIL_USER}>`,
+        from: `"Thrift-app" <${process.env.EMAIL_USER}>`,
         to: email,
         subject: "Your OTP for Email Verification",
         html: `

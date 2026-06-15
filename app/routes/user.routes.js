@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { loginUser, logOut, signupUser, verifyOTP } from "../controllers/user.controller.js";
+import { loginUser, logOut, signupUser, verifyOTP  } from "../controllers/user.controller.js";
 import { signupValidation } from "../validation/user.validation.js";
 import { getProfile, editProfile, deleteProfile } from "../controllers/profile.controller.js";
 import { validate } from "../middleware/validate.params.js";
@@ -9,7 +9,8 @@ const router = Router();
 
 
 router.post("/signup", validate(signupValidator), signupUser);
-router.post('/verify/otp', validate(otpValidator), verifyOTP);
+// router.post("/resend/otp", validate(signupValidator), resendOtp);
+router.post('/verify/otp', validate(otpValidator), verifyOTP); 
 router.post("/login", validate(loginValidator), loginUser);
 router.post("/logout", logOut);
 

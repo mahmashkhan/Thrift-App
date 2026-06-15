@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const otpRequestSchema = new mongoose.Schema({
   name: String,
@@ -9,4 +9,4 @@ const otpRequestSchema = new mongoose.Schema({
   otpExpiry: Date
 }, { timestamps: true });
 
-module.exports = mongoose.model('OtpRequest', otpRequestSchema);
+export default mongoose.model('OtpRequest', otpRequestSchema);

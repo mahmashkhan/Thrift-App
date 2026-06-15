@@ -1,4 +1,5 @@
 import User from '../models/user.model.js';
+import OTP from '../models/otpModel.js'
 import AppError from "../utils/AppError.js";
 import bcrypt from 'bcrypt';
 import otpStore from '../utils/otpStore.js';
@@ -61,6 +62,34 @@ const signupUser = catchAsync(async (req, res, next) => {
     // return res.status(200).json();
 });
 
+
+// const resendOtp = catchAsync(async (req, res, next) => {
+//     const { email } = req.body;
+
+//     if (!email) {
+//         return next(new AppError("Email is required", 400));
+//     }
+
+//     const pendingData = otpStore.get(email);
+
+//     if (!pendingData) {
+//         return next(new AppError("No signup session found. Please signup again", 404));
+//     }
+
+//     const otp = await generateAndStoreOtp({
+//         name: pendingData.name,
+//         email,
+//         password: pendingData.password,
+//         role: pendingData.role,
+//         phone: pendingData.phone,
+//         address: pendingData.address,
+//         image: pendingData.image
+//     });
+
+//     await sendOtpEmail({ name: pendingData.name, email, otp });
+
+//     successResponse(res, 200, { message: "OTP resent to your email" });
+// });
 
 const verifyOTP = catchAsync(async (req, res, next) => {
     const { email, otp } = req.body;

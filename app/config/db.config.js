@@ -12,7 +12,7 @@ const MONGODB_URI = `mongodb+srv://${USERNAME}:${PASSWORD}@cluster0.zics7mf.mong
 const connectDB = async () => {
     try {
         await mongoose.connect(MONGODB_URI, {
-            useNewUrlParser: true,
+            useNewUrlParser: true, 
             useUnifiedTopology: true
         })
             .then(() => {
