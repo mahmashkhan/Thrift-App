@@ -4,7 +4,7 @@ import otpStore from "../utils/otpStore.js";
 
 
 
-const generateAndStoreOtp = async ({ email }) => {
+const generateAndStoreOtp = async ({ name, email, password, role, phone, address, imageUrl }) => {
 
     // const otp = Math.floor(100000 + Math.random() * 900000);
     // const otpExpiry = Date.now() + 10 * 60 * 1000;
@@ -15,7 +15,7 @@ const generateAndStoreOtp = async ({ email }) => {
 
     // console.log("Here is hashedPass", hashedPassword);
 
-    otpStore.set(email, { otp, otpExpiry });
+    otpStore.set(email, { otp, name, password, role, otpExpiry, phone, address, imageUrl });
 
     return otp;
 };

@@ -33,3 +33,4 @@ export const editProfileValidator = Joi.object({
     imageUrl: Joi.string().optional().allow("")
 
 }) 
+

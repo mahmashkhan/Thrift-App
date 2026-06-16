@@ -29,7 +29,11 @@ import {
     policyValidator,
     updateUserValidator,
     adminCreateUserValidator
-} from "../validators/admin.validators.js"
+} from "../validators/admin.validators.js";
+
+import {
+    getMyNotifications, sendNotificationToAll
+} from "../controllers/notification.controller.js";
 const router = Router();
 
 //Influencer Management 
@@ -53,7 +57,7 @@ router.delete("/delete/policy/:id", allowedUsers("admin"), deletePolicy);
 
 
 
-
+router.post('/send', allowedUsers("admin"),sendNotificationToAll);
 // router.post('/create/influencer', createInfluencers);
 
 // Get all influencers

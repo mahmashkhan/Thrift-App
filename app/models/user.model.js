@@ -71,9 +71,22 @@ const UserSchema = new mongoose.Schema(
         commission_earned: {
             type: Number,
             default: 0
-        }
+        },
+        notifications: [
+            {
+                notification: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Notification'
+                },
+                isRead: { type: Boolean, default: false },
+                readAt: { type: Date, default: null }
+            }
+        ]
     },
-    { timestamps: true }
+
+    { timestamps: true },
+
+
 );
 
 
