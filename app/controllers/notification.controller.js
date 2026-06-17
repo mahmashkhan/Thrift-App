@@ -55,6 +55,43 @@ const sendNotificationToAll = catchAsync(async (req, res) => {
 
     successResponse(res, 200, { message: "Notification sent", notification });
 });
+
+const sendNotificationToOne = catchAsync(async (req, res) => {
+    const { title, message, type } = req.body;
+    const { userId } = req.params;
+
+    // 1. Check user exists
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+        return errorResponse(res, 404, { message: 'User not found' });
+    }
+
+    // 2. Save notification
+    const notification = await Notification.create({
+        title,
+        message,
+        type,
+        sentBy:    req.user._id,
+        expiresAt: getExpiryDate(type)
+    });
+
+    // 3. Push only to that specific user
+    await User.updateOne(
+        { _id: userId },
+        {
+            $push: {
+                notifications: {
+                    notification: notification._id,
+                    isRead: false
+                }
+            }
+        }
+    );
+
+    successResponse(res, 200, { message: `Notification sent to ${targetUser.name}`, notification });
+});
+
+
 // User fetches their notifications
 const getMyNotifications = catchAsync(async (req, res) => {
     const user = await User.findById(req.user.id)
@@ -110,4 +147,4 @@ const markAsRead = catchAsync(async (req, res) => {
     successResponse(res, 200, { message: "Marked as read" });
 });
 
-export { sendNotificationToAll, getMyNotifications, markAsRead };
+export { sendNotificationToAll, getMyNotifications, markAsRead ,sendNotificationToOne};

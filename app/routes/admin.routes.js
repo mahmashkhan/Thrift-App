@@ -32,7 +32,7 @@ import {
 } from "../validators/admin.validators.js";
 
 import {
-    getMyNotifications, sendNotificationToAll
+    getMyNotifications, sendNotificationToAll, sendNotificationToOne
 } from "../controllers/notification.controller.js";
 const router = Router();
 
@@ -57,7 +57,9 @@ router.delete("/delete/policy/:id", allowedUsers("admin"), deletePolicy);
 
 
 
-router.post('/send', allowedUsers("admin"),sendNotificationToAll);
+router.post('/send', allowedUsers("admin"), sendNotificationToAll);
+// routes/notification.routes.js
+router.post('/send-one/:userId', allowedUsers("admin"), sendNotificationToOne);
 // router.post('/create/influencer', createInfluencers);
 
 // Get all influencers
