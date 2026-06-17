@@ -72,6 +72,12 @@ const UserSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
+        favourites: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Product'
+            }
+        ],
         notifications: [
             {
                 notification: {
@@ -85,8 +91,7 @@ const UserSchema = new mongoose.Schema(
     },
 
     { timestamps: true },
-
-
+    
 );
 
 
