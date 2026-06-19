@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { loginUser, logOut, signupUser, verifyOTP } from "../controllers/user.controller.js";
+import { loginUser, logOut, signupUser, verifyOTP,forgotPassword, resetPassword } from "../controllers/user.controller.js";
 import { signupValidation } from "../validation/user.validation.js";
 import {
     getMyNotifications, markAsRead
@@ -18,6 +18,11 @@ router.post("/signup", validate(signupValidator), signupUser);
 router.post('/verify/otp', validate(otpValidator), verifyOTP);
 router.post("/login", validate(loginValidator), loginUser);
 router.post("/logout", logOut);
+
+// Forgot Password Routes
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+
 
 //Profile
 router.get("/profile/:id", getProfile);

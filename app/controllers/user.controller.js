@@ -156,18 +156,94 @@ const logOut = catchAsync(async (req, res) => {
     res.json({ message: "Logged out successfully" });
 })
 
-// const getAllUsers = catchAsync(async (req,res)=>{
-// const users = await User.Find();
-// res.status(200).json({
-//     status: "00",
-//     successIndicator: "success",
-//     data: {
-//         ...users
-//     },})
+//Forgot Password - Send OTP to email
+const forgotPassword = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
 
-// })
+    if (!email) {
+        return next(new AppError("Email is required", 400));
+    }
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+        return next(new AppError("No user found with this email", 404));
+    }
+
+    // Generate & store OTP
+    const otp = await generateAndStoreOtp({
+        email,
+        type: "passwordReset" // To differentiate from signup OTP
+    });
+
+    // Send OTP email
+    await sendOtpEmail({
+        name: user.name,
+        email,
+        otp
+    });
+
+    successResponse(res, 200, {
+        message: "OTP sent to your email for password reset"
+    });
+});
 
 
+// Reset Password - Verify OTP and update password
+const resetPassword = catchAsync(async (req, res, next) => {
+    const { email, otp, newPassword, confirmPassword } = req.body;
+
+    // Validate inputs
+    if (!email || !otp || !newPassword || !confirmPassword) {
+        return next(new AppError("Email, OTP, and new password are required", 400));
+    }
+
+    // Check if passwords match
+    if (newPassword !== confirmPassword) {
+        return next(new AppError("Passwords do not match", 400));
+    }
+
+    // Check password strength (optional but recommended)
+    if (newPassword.length < 8) {
+        return next(new AppError("Password must be at least 8 characters long", 400));
+    }
+
+    // Verify OTP
+    const otpData = otpStore.get(email);
+
+    if (!otpData) {
+        return next(new AppError("No OTP request found. Please request OTP again", 404));
+    }
+
+    if (otpData.otp !== Number(otp)) {
+        return next(new AppError("Invalid OTP", 400));
+    }
+
+    if (otpData.otpExpiry < Date.now()) {
+        otpStore.delete(email);
+        return next(new AppError("OTP expired. Please request a new one", 400));
+    }
+
+    // Find user and update password
+    const user = await User.findOne({ email });
+    if (!user) {
+        return next(new AppError("User not found", 404));
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Remove OTP from memory
+    otpStore.delete(email);
+
+    successResponse(res, 200, {
+        message: "Password reset successfully"
+    });
+});
 
 
-export { signupUser, loginUser, verifyOTP, logOut }
+export { signupUser, loginUser, verifyOTP, logOut, resetPassword,forgotPassword }
