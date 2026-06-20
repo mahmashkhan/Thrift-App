@@ -11,7 +11,7 @@ import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 
 
 const createBid = catchAsync(async (req, res, next) => {
-    const { productId, priceOffered, itemQuantity } = req.body;
+    const { productId, priceOffered, itemQuantity, managedById } = req.body;
 
     const product = await Product.findById(productId);
 
@@ -23,35 +23,23 @@ const createBid = catchAsync(async (req, res, next) => {
         return next(new AppError('You cannot bid on your own product', 400));
     }
 
-    let assignedTo = null;
-
-    if (product.saleType === "self") {
-        assignedTo = product.ownerId; // directly to seller
-    } else {
-        const admin = await User.findOne({ role: "admin" });
-        const adminId = admin._id;
-
-        assignedTo = adminId; // admin user ID
-    }
-
-
     const bid = await Bid.create({
         productId,
         buyerId: req?.user?.id,
         sellerId: product.ownerId,
-        assignedTo,
+        assignedTo: managedById,
         status: "pending",
         priceOffered,
         itemQuantity
     });
 
-    io.to(assignedTo.toString()).emit("newBid", {
-        message: "New bid received ===========>>> ",
-        bidId: bid._id,
-        productId,
-        buyerId: req.user.id,
-        priceOffered
-    });
+    // io.to(managedById.toString()).emit("newBid", {
+    //     message: "New bid received ===========>>> ",
+    //     bidId: bid._id,
+    //     productId,
+    //     buyerId: req.user.id,
+    //     priceOffered
+    // });
 
 
     res.status(201).json({
@@ -78,6 +66,7 @@ const acceptBid = catchAsync(async (req, res, next) => {
     const { bidId } = req.params;
 
     const bid = await Bid.findById(bidId)
+
     if (!bid) {
         return next(new AppError('No Bids found with bid id', 404))
     }
@@ -99,13 +88,13 @@ const acceptBid = catchAsync(async (req, res, next) => {
         cartItem = await createCartItem(bid, req.user.id);
 
 
-        console.log("Buyer Id", buyerId.toString())
-        io.to(buyerId.toString()).emit("bidAccepted", {
-            message: "Bid Accepted",
-            bidId,
-            productId,
-            priceOffered: bid.priceOffered,
-        });
+        // console.log("Buyer Id", buyerId.toString())
+        // io.to(buyerId.toString()).emit("bidAccepted", {
+        //     message: "Bid Accepted",
+        //     bidId,
+        //     productId,
+        //     priceOffered: bid.priceOffered,
+        // });
         await Bid.findByIdAndDelete(bidId);   //remove bid
 
     } else {
@@ -134,12 +123,12 @@ const rejectBid = catchAsync(async (req, res, next) => {
     if (bid?.assignedTo.toString() === req?.user?.id) {
         await Bid.findByIdAndDelete(bidId);
 
-        io.to(bid?.buyerId.toString()).emit("bidRejected", {
-            message: "Bid Rejected",
-            bidId,
-            productId: bid?.productId,
-            priceOffered: bid.priceOffered,
-        });
+        // io.to(bid?.buyerId.toString()).emit("bidRejected", {
+        //     message: "Bid Rejected",
+        //     bidId,
+        //     productId: bid?.productId,
+        //     priceOffered: bid.priceOffered,
+        // });
         // bid.status = "rejected"
         // await bid.save();
     } else {
@@ -200,7 +189,7 @@ const ViewCart = catchAsync(async (req, res, next) => {
 
     const cart = await Cart.find({ buyerId: buyerId })
 
-    console.log("Cart Be Like", cart)
+    // console.log("Cart Be Like", cart)
 
     res.status(200).json({
         responseCode: "00",
@@ -215,6 +204,7 @@ const checkOut = catchAsync(async (req, res, next) => {
     const cartItems = await Cart.find({ buyerId }).populate("productId");
 
 
+
     if (!cartItems.length) {
         return next(new AppError("Cart is empty", 404));
     }
@@ -226,7 +216,7 @@ const checkOut = catchAsync(async (req, res, next) => {
     for (const item of cartItems) {
         const product = await Product.findById(item.productId._id);
 
-        console.log("Each Product Be like", product);
+        // console.log("Each Product Be like", product);
 
         if (!product) {
             return next(new AppError("Product not found", 404));
@@ -257,20 +247,23 @@ const checkOut = catchAsync(async (req, res, next) => {
         });
     }
 
-    const order = await Order.create({
-        buyerId,
-        items: orderItems,
-        totalAmount,
-        status: "pending"
-    });
+
+    console.log("total Amount ------------", totalAmount);
+
+    // const order = await Order.create({
+    //     buyerId,
+    //     items: orderItems,
+    //     totalAmount,
+    //     status: "pending"
+    // });
 
     // Remove from cart
-    await Cart.deleteMany({ buyerId });
+    // await Cart.deleteMany({ buyerId });
 
     res.status(201).json({
         responseCode: "00",
         status: "success",
-        data: sanitizeResponse(order)
+        // data: sanitizeResponse(order)
     });
 
 });

@@ -6,7 +6,7 @@ import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 
 
 const createProduct = catchAsync(async (req, res, next) => {
-    let { saleType, ownerId, ...rest } = req.body;
+    let { sellType, ownerId, ...rest } = req.body;
 
     // const allowedRoles = ["seller", "influencer", "admin"];
 
@@ -17,9 +17,9 @@ const createProduct = catchAsync(async (req, res, next) => {
     if (req.user.role === "seller" && req.user.status !== "active") {
         return next(new AppError("Your seller account is not active. Contact support.", 403));
     }
-    if (saleType === "self" || saleType === "sellForMe") {
+    if (sellType === "self" || sellType === "sellForMe") {
         ownerId = req.user.id;
-    } else if (saleType === "influencer") {
+    } else if (sellType === "influencer") {
         if (!ownerId) {
             return next(new AppError("ownerId is required for influencer sale type", 400));
         }
@@ -28,7 +28,7 @@ const createProduct = catchAsync(async (req, res, next) => {
 
     const product = await Product.create({
         ...rest,
-        saleType,
+        sellType,
         ownerId,
         status: "pending"
     });
@@ -70,13 +70,13 @@ const getSingleProduct = catchAsync(async (req, res, next) => {
 });
 
 const searchProdByFilter = catchAsync(async (req, res, next) => {
-    const { category, minPrice, maxPrice, status, saleType, keyword, page = 1, limit = 10 } = req.query;
+    const { category, minPrice, maxPrice, status, sellType, keyword, page = 1, limit = 10 } = req.query;
 
     const filters = {};
 
     if (category) filters.categories = category;
     if (status) filters.status = status;
-    if (saleType) filters.saleType = saleType;
+    if (sellType) filters.sellType = sellType;
 
     if (minPrice || maxPrice) {
         filters.price = {};

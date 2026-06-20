@@ -18,7 +18,7 @@ const ProductSchema = new mongoose.Schema(
     },
 
     // Listing type
-    saleType: {
+    sellType: {
       type: String,
       enum: ["self", "sellForMe", "influencer"],
       required: true
@@ -34,8 +34,14 @@ const ProductSchema = new mongoose.Schema(
     // Who manages shipping & order flow
     managedBy: {
       type: String,
-      enum: ["seller", "company", "influencer"],
+      enum: ["seller", "admin", "influencer"],
       default: "seller"
+    },
+
+    managedById: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     },
 
     // Commission rate only applicable for influencer

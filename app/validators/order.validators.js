@@ -1,10 +1,17 @@
 import Joi from "joi";
 
+export const createBidValidator = Joi.object({
+    productId:Joi.string().required(),
+    priceOffered:Joi.number().required(),
+    itemQuantity:Joi.number().required(),
+    managedById:Joi.string().required(),
+})
+
+
 export const orderInfluencerValidators = Joi.object({
     productId:Joi.string().required(),
     priceOffered:Joi.number().required(),
     itemQuantity:Joi.number().required(),
-
 })
 
 export const statusValidator = Joi.object({

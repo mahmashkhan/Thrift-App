@@ -6,10 +6,11 @@ export const productValidator = Joi.object({
     price: Joi.number().required(),
     categories: Joi.array().optional().allow(""),
     managedBy: Joi.string().required(),
+    managedById: Joi.string().required(),
     // status: Joi.string()
     //     .valid("pending", "approved", "rejected", "inactive")
     //     .required(),
-    saleType: Joi.string()
+    sellType: Joi.string()
         .valid("self", "sellForMe")
         .required(),
     commissionRate: Joi.number().required(),

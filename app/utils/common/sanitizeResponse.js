@@ -11,6 +11,7 @@ export const sanitizeResponse = (data) => {
         delete sanitized.updatedAt;
         delete sanitized.__v;
         delete sanitized.password;
+        delete sanitized.conversationKey;
 
         // Remove influencer fields for non-influencers
         if (sanitized.role !== "influencer") {

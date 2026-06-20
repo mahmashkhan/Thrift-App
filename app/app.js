@@ -8,6 +8,7 @@ import cors from 'cors';
 import passport from 'passport';
 import './config/google.strategy.js';
 import errorHandler from './middleware/error.handler.js';
+import chatRoutes from "./routes/chat.routes.js";
 
 const app = express();
 
@@ -17,10 +18,21 @@ app.use(passport.initialize());
 
 
 app.use(googleRoutes);
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Application is healthy"
+    });
+});
+
+
+
+
 app.use('/api/v1/user', userRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/product", productRoutes);
 app.use("/api/v1/order", orderRoutes);
+app.use("/api/v1/chat", chatRoutes);
 
 
 app.use(errorHandler);

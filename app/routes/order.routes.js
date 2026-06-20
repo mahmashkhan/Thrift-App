@@ -3,10 +3,12 @@ import { acceptBid, addToCart, checkOut, createBid, getBuyerOrders, getOwnerOrde
      rejectBid, ViewCart } from "../controllers/order.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { allowedUsers } from "../middleware/authorizationMiddleware.js";
+import { createBidValidator } from "../validators/order.validators.js";
+import { validate } from "../middleware/validate.params.js";
 
 const router = Router();
 
-router.post('/bid/create', allowedUsers(), createBid);
+router.post('/bid/create', allowedUsers(), validate(createBidValidator), createBid);
 router.get('/bid/get/:productId', allowedUsers("admin", "seller"), getProductBids);
 router.post('/bid/accept/:bidId', allowedUsers("admin", "seller"), acceptBid);
 router.post('/bid/reject/:bidId', allowedUsers("admin", "seller"), rejectBid);
