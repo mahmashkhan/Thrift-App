@@ -4,9 +4,7 @@ import Product from '../models/product.model.js';
 import catchAsync from '../utils/catchAsync.js';
 import { successResponse, errorResponse } from '../utils/common/responseObject.js';
 
-// -----------------------------------------------
-// PATCH /api/favourites/:productId  — toggle
-// -----------------------------------------------
+// toggle favourite products
 const toggleFavourite = catchAsync(async (req, res) => {
     const { productId } = req.params;
     const userId = req.user._id;
@@ -34,13 +32,11 @@ const toggleFavourite = catchAsync(async (req, res) => {
             { _id: userId },
             { $addToSet: { favourites: productId } }
         );
-        return successResponse(res, 200, { message: 'Added to favourites' });
+        return successResponse(res, 200, { message: 'Added to favourites successfully' });
     }
 });
 
-// -----------------------------------------------
-// GET /api/favourites — get all my favourites
-// -----------------------------------------------
+
 const getMyFavourites = catchAsync(async (req, res) => {
     const user = await User.findById(req.user._id)
         .populate('favourites')   // gets full product details
@@ -52,14 +48,5 @@ const getMyFavourites = catchAsync(async (req, res) => {
     });
 });
 
-// -----------------------------------------------
-// GET /api/favourites/:productId — check if favourite
-// -----------------------------------------------
-const isFavourite = catchAsync(async (req, res) => {
-    const user = await User.findById(req.user._id).select('favourites');
-    const exists = user.favourites.includes(req.params.productId);
 
-    successResponse(res, 200, { isFavourite: exists });
-});
-
-export { toggleFavourite, getMyFavourites, isFavourite };
+export { toggleFavourite, getMyFavourites };

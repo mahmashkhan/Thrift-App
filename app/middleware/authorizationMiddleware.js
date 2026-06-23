@@ -8,6 +8,8 @@ const secret = process.env.JWT_SECRET;
 // Middleware: verify token + check roles
 export const allowedUsers = (...allowedRoles) => {
     return async (req, res, next) => {
+
+        console.log("HEADERSSSSSS", req?.headers)
         try {
             // Get authorization header
             const authHeader = req.headers.authorization || req.headers.Authorization;
@@ -30,6 +32,7 @@ export const allowedUsers = (...allowedRoles) => {
 
             // Save user to request
             req.user = user;
+            
 
             // If middleware has role restrictions, validate
             if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {

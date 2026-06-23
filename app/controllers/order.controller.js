@@ -150,36 +150,56 @@ const addToCart = catchAsync(async (req, res, next) => {
 
     // Check product exists
     const product = await Product.findById(productId);
+
     if (!product || product.status !== "approved") {
         return next(new AppError("Product not available", 404));
     }
 
-    // Check if already in cart
-    const existingItem = await Cart.findOne({ buyerId, productId, status: "reserved" });
-    if (existingItem) {
-        return next(new AppError("Product already In Cart", 402));
+    // Find user's cart
+    let cart = await Cart.findOne({ buyerId });
+
+    // Create cart if it doesn't exist
+    if (!cart) {
+        cart = await Cart.create({
+            buyerId,
+            items: [
+                {
+                    productId,
+                    bidId: null,
+                    price: product.price,
+                    quantity: 1
+                }
+            ]
+        });
+    } else {
+        // Check if product already exists in cart
+        const existingItem = cart.items.find(
+            item => item.productId.toString() === productId
+        );
+
+        if (existingItem) {
+            if (existingItem.quantity + 1 > product.stock) {
+                return next(
+                    new AppError(`Only ${product.stock} item(s) available in stock`, 400)
+                );
+            }
+            existingItem.quantity += 1;
+        } else {
+            cart.items.push({
+                productId,
+                bidId: null,
+                price: product.price,
+                quantity: 1
+            });
+        }
+
+        await cart.save();
     }
 
-    // expiry date logic
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 3);
-
-    console.log("Product being logged", product);
-
-    // Create cart item
-    await Cart.create({
-        buyerId,
-        productId,
-        bidId: null,
-        expiresAt,
-        // status: "reserved", 
-        price: product?.price
-    });
-
-    res.status(201).json({
+    res.status(200).json({
         responseCode: "00",
         status: "success",
-        data: sanitizeResponse(product)
+        data: sanitizeResponse(cart)
     });
 });
 
@@ -187,7 +207,7 @@ const addToCart = catchAsync(async (req, res, next) => {
 const ViewCart = catchAsync(async (req, res, next) => {
     const { buyerId } = req.params;
 
-    const cart = await Cart.find({ buyerId: buyerId })
+    const cart = await Cart.findOne({ buyerId: buyerId })
 
     // console.log("Cart Be Like", cart)
 
@@ -199,73 +219,107 @@ const ViewCart = catchAsync(async (req, res, next) => {
 });
 
 const checkOut = catchAsync(async (req, res, next) => {
+
     const buyerId = req.user.id;
 
-    const cartItems = await Cart.find({ buyerId }).populate("productId");
+    const cart = await Cart.findOne({ buyerId })
+        .populate("items.productId");
 
-
-
-    if (!cartItems.length) {
+    if (!cart || !cart.items.length) {
         return next(new AppError("Cart is empty", 404));
     }
 
-    // 2. Calculate total amount
-    let totalAmount = 0;
+    let subtotal = 0;
+
+    let totalPlatformCommission = 0;
+
+    let totalSellerAmount = 0;
+
+    let totalInfluencerAmount = 0;
+
     const orderItems = [];
 
-    for (const item of cartItems) {
-        const product = await Product.findById(item.productId._id);
+    for (const item of cart.items) {
 
-        // console.log("Each Product Be like", product);
+        const product = item.productId;
 
         if (!product) {
-            return next(new AppError("Product not found", 404));
+            return next(
+                new AppError("Product not found", 404)
+            );
         }
 
-        // If product quantity < item qty
-        if (product.quantity < item.quantity) {
-            return next(new AppError(`Insufficient quantity for product: ${product.title}`, 400));
+        // Stock validation
+        if (product.stock < item.quantity) {
+            return next(
+                new AppError(
+                    `Insufficient stock for ${product.title}`,
+                    400
+                )
+            );
         }
 
-        // Deduct stock
-        product.quantity -= item.quantity;
+        const settlement =
+            orderSettlement({
+                product,
+                quantity: item.quantity
+            });
 
-        if (product.quantity === 0) {
-            product.status = "sold";
-        }
+        subtotal += settlement.productAmount;
 
-        await product.save();
+        totalPlatformCommission +=
+            settlement.platformCommission;
 
-        totalAmount += item.productId.price * item.quantity;
+        totalSellerAmount +=
+            settlement.sellerAmount;
+
+        totalInfluencerAmount +=
+            settlement.influencerAmount;
 
         orderItems.push({
-            productId: item.productId._id,
-            price: item.productId.price,
-            quantity: item.productId.quantity,
-            productOwner: item.productId.ownerId,
-            bidId: item.bidId || null
+            productId: product._id,
+
+            sellerId:
+                settlement.productType === "influencer"
+                    ? null
+                    : product.ownerId,
+
+            managedBy: product.managedBy,
+
+            managedById: product.managedById,
+
+            sellType: product.sellType,
+
+            quantity: item.quantity,
+
+            unitPrice: product.price,
+
+            bidId: item.bidId,
+
+            settlement
         });
     }
 
+    const summary = {
+        subtotal,
 
-    console.log("total Amount ------------", totalAmount);
+        totalPlatformCommission,
 
-    // const order = await Order.create({
-    //     buyerId,
-    //     items: orderItems,
-    //     totalAmount,
-    //     status: "pending"
-    // });
+        totalSellerAmount,
 
-    // Remove from cart
-    // await Cart.deleteMany({ buyerId });
+        totalInfluencerAmount,
 
-    res.status(201).json({
+        totalPayable: subtotal
+    };
+
+    return res.status(200).json({
         responseCode: "00",
         status: "success",
-        // data: sanitizeResponse(order)
+        data: {
+            items: orderItems,
+            summary
+        }
     });
-
 });
 
 

@@ -3,6 +3,7 @@ import User from '../models/user.model.js';
 import Notification from '../models/notification.model.js';
 import { successResponse, errorResponse } from '../utils/common/responseObject.js';
 import catchAsync from '../utils/catchAsync.js';
+import { sanitizeResponse } from '../utils/common/sanitizeResponse.js';
 
 // controllers/notification.controller.js
 
@@ -35,7 +36,7 @@ const sendNotificationToAll = catchAsync(async (req, res) => {
         title,
         message,
         type,
-        sentBy:    req.user._id,
+        sentBy: req.user._id,
         expiresAt
     });
 
@@ -51,9 +52,13 @@ const sendNotificationToAll = catchAsync(async (req, res) => {
         }
     );
 
-    
 
-    successResponse(res, 200, { message: "Notification sent", notification });
+    res.status(200).json({
+        "status": "success",
+        "responseCode": "00",
+        "data": sanitizeResponse(notification)
+    })
+
 });
 
 const sendNotificationToOne = catchAsync(async (req, res) => {
@@ -71,7 +76,7 @@ const sendNotificationToOne = catchAsync(async (req, res) => {
         title,
         message,
         type,
-        sentBy:    req.user._id,
+        sentBy: req.user._id,
         expiresAt: getExpiryDate(type)
     });
 
@@ -88,7 +93,11 @@ const sendNotificationToOne = catchAsync(async (req, res) => {
         }
     );
 
-    successResponse(res, 200, { message: `Notification sent to ${targetUser.name}`, notification });
+    res.status(200).json({
+        "status": "success",
+        "responseCode": "00",
+        "data": sanitizeResponse(notification)
+    })
 });
 
 
@@ -147,4 +156,4 @@ const markAsRead = catchAsync(async (req, res) => {
     successResponse(res, 200, { message: "Marked as read" });
 });
 
-export { sendNotificationToAll, getMyNotifications, markAsRead ,sendNotificationToOne};
+export { sendNotificationToAll, getMyNotifications, markAsRead, sendNotificationToOne };

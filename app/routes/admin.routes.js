@@ -57,16 +57,6 @@ router.delete("/delete/policy/:id", allowedUsers("admin"), deletePolicy);
 
 
 
-router.post('/send', allowedUsers("admin"), sendNotificationToAll);
-// routes/notification.routes.js
-router.post('/send-one/:userId', allowedUsers("admin"), sendNotificationToOne);
-// router.post('/create/influencer', createInfluencers);
-
-// Get all influencers
-// router.get('/influencer', getInfluencers);
-
-// Update influencer
-// router.put('/update/influencer/:id', updateInfluencer);
 
 
 

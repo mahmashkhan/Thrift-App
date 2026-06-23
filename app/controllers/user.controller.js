@@ -115,6 +115,54 @@ const verifyOTP = catchAsync(async (req, res, next) => {
 });
 
 
+const resendOtp = catchAsync(async (req, res, next) => {
+
+    const { email } = req.body;
+
+    if (!email) {
+        return next(
+            new AppError("Email is required", 400)
+        );
+    }
+
+    // Find pending signup record
+    const pendingUser = otpStore.get(email);
+
+    if (!pendingUser) {
+        return next(
+            new AppError(
+                "No pending registration found for this email",
+                404
+            )
+        );
+    }
+
+    // Generate new OTP
+    const otp = generateOtp();
+
+    pendingUser.otp = otp;
+
+    pendingUser.otpExpiresAt = new Date(
+        Date.now() + 10 * 60 * 1000
+    );
+
+    await pendingUser.save();
+
+    // Send OTP Email
+    await sendOtpEmail({
+        name: pendingUser.name,
+        email,
+        otp
+    });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message: "OTP resent successfully"
+    });
+});
+
+
 // loginUser.js
 const loginUser = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
@@ -246,4 +294,6 @@ const resetPassword = catchAsync(async (req, res, next) => {
 });
 
 
-export { signupUser, loginUser, verifyOTP, logOut, resetPassword,forgotPassword }
+
+
+export { signupUser, loginUser, verifyOTP, resendOtp, logOut, resetPassword, forgotPassword }
