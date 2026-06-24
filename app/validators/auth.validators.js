@@ -12,7 +12,7 @@ export const signupValidator = Joi.object({
     role: Joi.string()
         .valid("admin", "seller", "buyer")
         .required(),
-    phone: Joi.string().length(11).required(),
+    phone: Joi.string().length(11).optional().allow(""),
     address: Joi.string().optional().allow(""),
     imageUrl: Joi.string().optional().allow("")
 

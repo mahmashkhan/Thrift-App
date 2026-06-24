@@ -1,11 +1,14 @@
+// import { required } from "joi";
 import mongoose from "mongoose";
 
 const ProductSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true },
+    title: { type: String },
+    color: { type: String, required: true },
     description: { type: String },
 
     price: { type: Number, required: true },
+    salePrice: { type: Number, required: true },
     imageUrls: [{ type: String }], // uploaded to S3 or Cloud
 
     categories: [{ type: Array, default: null }],
@@ -59,7 +62,26 @@ const ProductSchema = new mongoose.Schema(
 
     // For availability
     stock: { type: Number, default: 1 },
+    size:
+    {
+      type: String,
+      required: true,
+      enum: ["XS", "S", "M", "L", "XL", "XXL", "Free Size"]
+    }
+    ,
+    brand: {
+      type: String,
+      trim: true
+    },
+    condition: {
+      type: String,
+      enum: ["New", "Like New", "Used", "Refurbished"],
+      default: "New"
+    },
+    details: {
+      type: String,
 
+    }
     // Track who approved product
     // approvedByAdmin: {
     //   type: mongoose.Schema.Types.ObjectId,
