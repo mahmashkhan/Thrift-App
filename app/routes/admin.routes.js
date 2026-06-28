@@ -30,7 +30,13 @@ import {
     updateUserValidator,
     adminCreateUserValidator
 } from "../validators/admin.validators.js";
+import {
+    getPreferenceOptions,
+    createPreferenceOption,
+    updatePreferenceOption,
+    deletePreferenceOption,
 
+} from "../controllers/category.controller.js";
 import {
     getMyNotifications, sendNotificationToAll, sendNotificationToOne
 } from "../controllers/notification.controller.js";
@@ -55,7 +61,10 @@ router.get("/get/policy/:id", allowedUsers(), getPolicyById);
 router.put("/update/policy/:id", allowedUsers("admin"), updatePolicy);
 router.delete("/delete/policy/:id", allowedUsers("admin"), deletePolicy);
 
-
+// Admin - manage preference options
+router.post("/options/create", allowedUsers("admin"), createPreferenceOption);
+router.put("/options/update/:id", allowedUsers("admin"), updatePreferenceOption);
+router.delete("/options/delete/:id", allowedUsers("admin"), deletePreferenceOption);
 
 
 

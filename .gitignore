@@ -4,6 +4,7 @@
 
 # Node dependencies
 node_modules/
+.claude
 
 # Environment variables
 .env

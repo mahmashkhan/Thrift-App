@@ -43,10 +43,19 @@ const UserSchema = new mongoose.Schema(
             type: String,
         },
 
+        dateOfBirth: {
+            type: Date,
+        },
+
+        location: {
+            type: String,
+            trim: true,
+        },
+
         status: {
             type: String,
             enum: ["active", "inactive", "suspended", "rejected", "pending"],
-            default: "inactive"
+            default: "active"
         },
 
         isVerified: {
@@ -73,6 +82,23 @@ const UserSchema = new mongoose.Schema(
         commission_earned: {
             type: Number,
             default: 0
+        },
+        averageRating: {
+            type: Number,
+            default: 0,
+        },
+        totalReviews: {
+            type: Number,
+            default: 0,
+        },
+        preferences: {
+            brands: [{ type: String, trim: true }],
+            sizes: [{ type: String, trim: true }],
+            styles: [{ type: String, trim: true }],
+        },
+        hasSetPreferences: {
+            type: Boolean,
+            default: false,
         },
         favourites: [
             {

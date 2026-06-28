@@ -13,6 +13,16 @@ const ProductSchema = new mongoose.Schema(
 
     categories: [{ type: Array, default: null }],
 
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ProductCategory",
+    },
+
+    location: {
+      type: String,
+      trim: true,
+    },
+
     // // Who originally created this product (seller or influencer)
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,

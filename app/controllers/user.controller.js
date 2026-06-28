@@ -1,5 +1,6 @@
 import User from '../models/user.model.js';
 import OTP from '../models/otpModel.js'
+import UserReview from '../models/user.review.model.js';
 import AppError from "../utils/AppError.js";
 import bcrypt from 'bcrypt';
 import otpStore from '../utils/otpStore.js';
@@ -296,4 +297,128 @@ const resetPassword = catchAsync(async (req, res, next) => {
 
 
 
-export { signupUser, loginUser, verifyOTP, resendOtp, logOut, resetPassword, forgotPassword }
+const addUserReview = catchAsync(async (req, res, next) => {
+    const { sellerId, rating, comment } = req.body;
+    const reviewerId = req.user.id;
+
+    if (sellerId === reviewerId) {
+        return next(new AppError("You cannot review yourself", 400));
+    }
+
+    const seller = await User.findById(sellerId);
+    if (!seller) {
+        return next(new AppError("User not found", 404));
+    }
+
+    if (!["seller", "influencer"].includes(seller.role)) {
+        return next(new AppError("You can only review sellers or influencers", 400));
+    }
+
+    const existingReview = await UserReview.findOne({ sellerId, reviewerId });
+    if (existingReview) {
+        return next(new AppError("You have already reviewed this user", 400));
+    }
+
+    await UserReview.create({ sellerId, reviewerId, rating, comment });
+
+    const stats = await UserReview.aggregate([
+        { $match: { sellerId: seller._id } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
+    ]);
+
+    await User.findByIdAndUpdate(sellerId, {
+        averageRating: Math.round(stats[0].avgRating * 10) / 10,
+        totalReviews: stats[0].count,
+    });
+
+    res.status(201).json({
+        responseCode: "00",
+        status: "success",
+        message: "Review added successfully",
+        data: {
+            averageRating: Math.round(stats[0].avgRating * 10) / 10,
+            totalReviews: stats[0].count,
+        }
+    });
+});
+
+const getUserReviews = catchAsync(async (req, res, next) => {
+    const { sellerId } = req.params;
+
+    const seller = await User.findById(sellerId).select("averageRating totalReviews name");
+    if (!seller) {
+        return next(new AppError("User not found", 404));
+    }
+
+    const reviews = await UserReview.find({ sellerId })
+        .populate("reviewerId", "name image")
+        .sort({ createdAt: -1 });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        averageRating: seller.averageRating,
+        totalReviews: seller.totalReviews,
+        data: reviews,
+    });
+});
+
+const updateUserReview = catchAsync(async (req, res, next) => {
+    const { rating, comment } = req.body;
+    const reviewerId = req.user.id;
+
+    const review = await UserReview.findOne({ _id: req.params.reviewId, reviewerId });
+    if (!review) {
+        return next(new AppError("Review not found", 404));
+    }
+
+    if (rating) review.rating = rating;
+    if (comment !== undefined) review.comment = comment;
+    await review.save();
+
+    const stats = await UserReview.aggregate([
+        { $match: { sellerId: review.sellerId } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
+    ]);
+
+    await User.findByIdAndUpdate(review.sellerId, {
+        averageRating: Math.round(stats[0].avgRating * 10) / 10,
+        totalReviews: stats[0].count,
+    });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message: "Review updated successfully",
+    });
+});
+
+const deleteUserReview = catchAsync(async (req, res, next) => {
+    const reviewerId = req.user.id;
+
+    const review = await UserReview.findOne({ _id: req.params.reviewId, reviewerId });
+    if (!review) {
+        return next(new AppError("Review not found", 404));
+    }
+
+    const sellerId = review.sellerId;
+    await review.deleteOne();
+
+    const stats = await UserReview.aggregate([
+        { $match: { sellerId } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
+    ]);
+
+    await User.findByIdAndUpdate(sellerId, {
+        averageRating: stats.length ? Math.round(stats[0].avgRating * 10) / 10 : 0,
+        totalReviews: stats.length ? stats[0].count : 0,
+    });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message: "Review deleted successfully",
+    });
+});
+
+export { signupUser, loginUser, verifyOTP, resendOtp, logOut, resetPassword, forgotPassword, addUserReview, getUserReviews, updateUserReview, deleteUserReview }

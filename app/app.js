@@ -45,6 +45,7 @@ app.use("/api/v1/favourite", favouriteRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 
 
+
 app.use(errorHandler);
 
 export default app;

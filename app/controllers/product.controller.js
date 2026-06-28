@@ -1,6 +1,6 @@
 import Favourite from "../models/favourite.model.js";
 import Product from "../models/product.model.js";
-import Review from "../models/review.model.js";
+import Review from "../models/product.review.model.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
@@ -71,47 +71,82 @@ const getSingleProduct = catchAsync(async (req, res, next) => {
 });
 
 const searchProdByFilter = catchAsync(async (req, res, next) => {
-    const { category, minPrice, maxPrice, status, sellType, keyword, page = 1, limit = 10 } = req.query;
+    const {
+        brand,
+        color,
+        size,
+        condition,
+        location,
+        minPrice,
+        maxPrice,
+        status,
+        sellType,
+        keyword,
+        sortBy,
+        page = 1,
+        limit = 10,
+    } = req.query;
 
     const filters = {};
 
-    if (category) filters.categories = category;
+    if (brand) filters.brand = { $in: brand.split(",") };
+    if (color) filters.color = { $in: color.split(",") };
+    if (size) filters.size = { $in: size.split(",") };
+    if (condition) filters.condition = { $in: condition.split(",") };
+    if (location) filters.location = { $in: location.split(",") };
     if (status) filters.status = status;
     if (sellType) filters.sellType = sellType;
 
     if (minPrice || maxPrice) {
-        filters.price = {};
-        if (minPrice) filters.price.$gte = Number(minPrice);
-        if (maxPrice) filters.price.$lte = Number(maxPrice);
+        filters.salePrice = {};
+        if (minPrice) filters.salePrice.$gte = Number(minPrice);
+        if (maxPrice) filters.salePrice.$lte = Number(maxPrice);
     }
 
     if (keyword) {
         filters.$or = [
-            { name: { $regex: keyword, $options: "i" } },
+            { title: { $regex: keyword, $options: "i" } },
             { description: { $regex: keyword, $options: "i" } },
+            { brand: { $regex: keyword, $options: "i" } },
         ];
+    }
+
+    let sortOption = { createdAt: -1 };
+    switch (sortBy) {
+        case "newest":
+            sortOption = { createdAt: -1 };
+            break;
+        case "priceHighToLow":
+            sortOption = { salePrice: -1 };
+            break;
+        case "priceLowToHigh":
+            sortOption = { salePrice: 1 };
+            break;
+        case "relevance":
+        default:
+            sortOption = { averageRating: -1, totalReviews: -1, createdAt: -1 };
+            break;
     }
 
     const skip = (page - 1) * limit;
 
-    console.log("Filter visually ======>", filters)
-
-    const products = await Product.find(filters)
-        .skip(skip)
-        .limit(Number(limit));
-
-    const total = await Product.countDocuments(filters);
+    const [products, total] = await Promise.all([
+        Product.find(filters)
+            .sort(sortOption)
+            .skip(skip)
+            .limit(Number(limit)),
+        Product.countDocuments(filters),
+    ]);
 
     res.status(200).json({
-        code: "00",
-        successIndicator: "success",
+        responseCode: "00",
+        status: "success",
         page: Number(page),
         limit: Number(limit),
         total,
         totalPages: Math.ceil(total / limit),
-        data: products
+        data: products,
     });
-
 });
 
 
@@ -313,13 +348,22 @@ const addReview = catchAsync(async (req, res, next) => {
 });
 
 const getProductReviews = catchAsync(async (req, res, next) => {
-    const reviews = await Review.find({ productId: req.params.productId })
+    const { productId } = req.params;
+
+    const reviews = await Review.find({ productId })
         .populate("userId", "name image")
         .sort({ createdAt: -1 });
+
+    const product = await Product.findById(productId).select("averageRating totalReviews");
+    if (!product) {
+        return next(new AppError("Product not found", 404));
+    }
 
     res.status(200).json({
         responseCode: "00",
         status: "success",
+        averageRating: product.averageRating,
+        totalReviews: product.totalReviews,
         data: reviews,
     });
 });

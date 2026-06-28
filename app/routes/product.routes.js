@@ -3,7 +3,8 @@ import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites
 import { verifyToken } from "../config/jwt.handle.js";
 import { allowedUsers } from "../middleware/authorizationMiddleware.js";
 import { validate } from "../middleware/validate.params.js";
-import { productValidator,productUpdateValidator } from "../validators/product.validators.js";
+import { productValidator, productUpdateValidator } from "../validators/product.validators.js";
+import { addProductReviewValidator, updateProductReviewValidator } from "../validators/review.validators.js";
 
 const router = Router();
 
@@ -21,9 +22,9 @@ router.post("/favourite/add", allowedUsers(), addProductToFavourite);
 router.get("/favourite/get/:buyerId", allowedUsers(), getBuyerFavourites);
 router.delete("/favourite/remove/:itemId", allowedUsers(), removeItemFromFav);
 
-router.post("/review/add", allowedUsers(), addReview);
+router.post("/review/add", validate(addProductReviewValidator), allowedUsers(), addReview);
 router.get("/review/:productId", allowedUsers(), getProductReviews);
-router.put("/review/update/:reviewId", allowedUsers(), updateReview);
+router.put("/review/update/:reviewId", validate(updateProductReviewValidator), allowedUsers(), updateReview);
 router.delete("/review/delete/:reviewId", allowedUsers(), deleteReview);
 // router.get("/favourite/get/item/:item", addProductToFavourite);
 
