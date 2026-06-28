@@ -3,6 +3,10 @@ import userRoutes from './routes/user.routes.js';
 import productRoutes from './routes/product.routes.js';
 import orderRoutes from "./routes/order.routes.js"
 import googleRoutes from './routes/google.routes.js';
+import './config/facebook.strategy.js';
+import './config/apple.strategy.js';
+import facebookRoutes from './routes/facebook.routes.js';
+import appleRoutes from './routes/apple.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import cors from 'cors';
 import passport from 'passport';
@@ -20,6 +24,8 @@ app.use(passport.initialize());
 
 
 app.use(googleRoutes);
+app.use(facebookRoutes);
+app.use(appleRoutes);
 app.get("/health", (req, res) => {
     res.status(200).json({
         success: true,

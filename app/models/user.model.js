@@ -18,10 +18,12 @@ const UserSchema = new mongoose.Schema(
         password: {
             type: String,
             required: function () {
-                return !this.googleId; // required ONLY if NOT Google user
+                return !this.googleId && !this.facebookId && !this.appleId;
             },
         },
         googleId: { type: String, default: null },
+        facebookId: { type: String, default: null },
+        appleId: { type: String, default: null },
 
         role: {
             type: String,

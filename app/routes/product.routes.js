@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus } from "../controllers/product.controller.js";
+import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus, addReview, getProductReviews, updateReview, deleteReview } from "../controllers/product.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { allowedUsers } from "../middleware/authorizationMiddleware.js";
 import { validate } from "../middleware/validate.params.js";
@@ -20,6 +20,11 @@ router.delete("/delete/:id", allowedUsers("admin", "seller"), deleteProduct);
 router.post("/favourite/add", allowedUsers(), addProductToFavourite);
 router.get("/favourite/get/:buyerId", allowedUsers(), getBuyerFavourites);
 router.delete("/favourite/remove/:itemId", allowedUsers(), removeItemFromFav);
+
+router.post("/review/add", allowedUsers(), addReview);
+router.get("/review/:productId", allowedUsers(), getProductReviews);
+router.put("/review/update/:reviewId", allowedUsers(), updateReview);
+router.delete("/review/delete/:reviewId", allowedUsers(), deleteReview);
 // router.get("/favourite/get/item/:item", addProductToFavourite);
 
 // router.get("/get/inf/product", getAllProducts);

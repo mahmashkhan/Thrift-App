@@ -80,7 +80,14 @@ const ProductSchema = new mongoose.Schema(
     },
     details: {
       type: String,
-
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
     }
     // Track who approved product
     // approvedByAdmin: {

@@ -1,5 +1,6 @@
 import Favourite from "../models/favourite.model.js";
 import Product from "../models/product.model.js";
+import Review from "../models/review.model.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
@@ -274,4 +275,111 @@ const removeItemFromFav = catchAsync(async (req, res, next) => {
 
 
 
-export { createProduct, getProductByStatus, getSingleProduct, searchProdByFilter, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct, addProductToFavourite, getBuyerFavourites, removeItemFromFav }
+const addReview = catchAsync(async (req, res, next) => {
+    const { productId, rating, comment } = req.body;
+    const userId = req.user.id;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+        return next(new AppError("Product not found", 404));
+    }
+
+    const existingReview = await Review.findOne({ productId, userId });
+    if (existingReview) {
+        return next(new AppError("You have already reviewed this product", 400));
+    }
+
+    await Review.create({ productId, userId, rating, comment });
+
+    const stats = await Review.aggregate([
+        { $match: { productId: product._id } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
+    ]);
+
+    await Product.findByIdAndUpdate(productId, {
+        averageRating: Math.round(stats[0].avgRating * 10) / 10,
+        totalReviews: stats[0].count,
+    });
+
+    res.status(201).json({
+        responseCode: "00",
+        status: "success",
+        message: "Review added successfully",
+        data: {
+            averageRating: Math.round(stats[0].avgRating * 10) / 10,
+            totalReviews: stats[0].count,
+        }
+    });
+});
+
+const getProductReviews = catchAsync(async (req, res, next) => {
+    const reviews = await Review.find({ productId: req.params.productId })
+        .populate("userId", "name image")
+        .sort({ createdAt: -1 });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: reviews,
+    });
+});
+
+const updateReview = catchAsync(async (req, res, next) => {
+    const { rating, comment } = req.body;
+    const userId = req.user.id;
+
+    const review = await Review.findOne({ _id: req.params.reviewId, userId });
+    if (!review) {
+        return next(new AppError("Review not found", 404));
+    }
+
+    if (rating) review.rating = rating;
+    if (comment !== undefined) review.comment = comment;
+    await review.save();
+
+    const stats = await Review.aggregate([
+        { $match: { productId: review.productId } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
+    ]);
+
+    await Product.findByIdAndUpdate(review.productId, {
+        averageRating: Math.round(stats[0].avgRating * 10) / 10,
+        totalReviews: stats[0].count,
+    });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message: "Review updated successfully",
+    });
+});
+
+const deleteReview = catchAsync(async (req, res, next) => {
+    const userId = req.user.id;
+
+    const review = await Review.findOne({ _id: req.params.reviewId, userId });
+    if (!review) {
+        return next(new AppError("Review not found", 404));
+    }
+
+    const productId = review.productId;
+    await review.deleteOne();
+
+    const stats = await Review.aggregate([
+        { $match: { productId } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
+    ]);
+
+    await Product.findByIdAndUpdate(productId, {
+        averageRating: stats.length ? Math.round(stats[0].avgRating * 10) / 10 : 0,
+        totalReviews: stats.length ? stats[0].count : 0,
+    });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message: "Review deleted successfully",
+    });
+});
+
+export { createProduct, getProductByStatus, getSingleProduct, searchProdByFilter, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct, addProductToFavourite, getBuyerFavourites, removeItemFromFav, addReview, getProductReviews, updateReview, deleteReview }
