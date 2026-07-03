@@ -1,4 +1,4 @@
-import User from '../models/user.model.js';
+import { Seller, User } from '../models/user.model.js';
 import OTP from '../models/otpModel.js'
 import UserReview from '../models/user.review.model.js';
 import AppError from "../utils/AppError.js";
@@ -10,59 +10,97 @@ import { generateAndStoreOtp, sendOtpEmail } from '../config/email.service.js';
 import { signToken } from '../config/jwt.handle.js';
 import { sanitizeResponse } from '../utils/common/sanitizeResponse.js';
 import { errorResponse, successResponse } from '../utils/common/responseObject.js';
+import Order from '../models/order.model.js';
 dotenv.config();
 
 
 
 const signupUser = catchAsync(async (req, res, next) => {
+
     const {
         name,
         email,
         password,
-        role,
         phone,
-        address,
         imageUrl
     } = req.body;
 
-    // Only buyer/seller allowed from public signup
-    if (!["buyer", "seller"].includes(role)) {
-        return next(
-            new AppError("Invalid role for signup", 400)
-        );
-    }
-
     const userExist = await User.findOne({ email });
+
     if (userExist) {
         return next(
             new AppError("User already exists", 409)
         );
     }
 
-    // Generate & store OTP
     const otp = await generateAndStoreOtp({
+
         name,
+
         email,
+
         password,
-        role,
+
         phone,
-        address,
-        imageUrl
+
+        imageUrl,
+
+        roles: ["buyer"]
+
     });
 
-    // Send OTP email
     await sendOtpEmail({
+
         name,
+
+        email,
+
+        otp
+
+    });
+
+
+    successResponse(res, 200, {
+
+        message: "OTP sent to your email"
+
+    });
+
+});
+
+
+const resendOtp = catchAsync(async (req, res, next) => {
+
+    const { email } = req.body;
+
+    const otpRecord = otpStore.get(email);
+
+    if (!otpRecord) {
+        return next(
+            new AppError("No pending signup found. Please signup first.", 404)
+        );
+    }
+
+    const otp = await generateAndStoreOtp({
+        name: otpRecord.name,
+        email: otpRecord.email,
+        password: otpRecord.password,
+        phone: otpRecord.phone,
+        imageUrl: otpRecord.imageUrl,
+        roles: otpRecord.roles
+    });
+
+    await sendOtpEmail({
+        name: otpRecord.name,
         email,
         otp
     });
 
     successResponse(res, 200, {
-        message: "OTP sent to your email"
-    })
-    // return res.status(200).json();
-});
+        message: "OTP resent successfully."
+    });
 
+});
 
 
 const verifyOTP = catchAsync(async (req, res, next) => {
@@ -78,11 +116,15 @@ const verifyOTP = catchAsync(async (req, res, next) => {
         errorResponse(res, 404, { message: "No OTP request found" })
     // return res.status(404).json({ message: "No OTP request found" });
 
-    if (otpData.otp !== Number(otp))
-        return res.status(400).json({ message: "Invalid OTP" });
+    if (otpData.otp !== otp)
+        return next(
+            new AppError("Invalid OTP", 400)
+        );
 
     if (otpData.otpExpiry < Date.now())
-        return res.status(400).json({ message: "OTP expired" });
+        return next(
+            new AppError("OTP expired", 400)
+        );
 
     const hashedPassword = await bcrypt.hash(otpData?.password, 10);
 
@@ -91,11 +133,9 @@ const verifyOTP = catchAsync(async (req, res, next) => {
         name: otpData?.name,
         email: email,
         password: hashedPassword,
-        role: otpData?.role,
         phone: otpData?.phone,
-        address: otpData?.address,
         image: otpData?.image,
-        isVerified: true
+        roles: ['buyer'],
     });
 
     const user = await newUser.save();
@@ -116,52 +156,6 @@ const verifyOTP = catchAsync(async (req, res, next) => {
 });
 
 
-const resendOtp = catchAsync(async (req, res, next) => {
-
-    const { email } = req.body;
-
-    if (!email) {
-        return next(
-            new AppError("Email is required", 400)
-        );
-    }
-
-    // Find pending signup record
-    const pendingUser = otpStore.get(email);
-
-    if (!pendingUser) {
-        return next(
-            new AppError(
-                "No pending registration found for this email",
-                404
-            )
-        );
-    }
-
-    // Generate new OTP
-    const otp = generateOtp();
-
-    pendingUser.otp = otp;
-
-    pendingUser.otpExpiresAt = new Date(
-        Date.now() + 10 * 60 * 1000
-    );
-
-    await pendingUser.save();
-
-    // Send OTP Email
-    await sendOtpEmail({
-        name: pendingUser.name,
-        email,
-        otp
-    });
-
-    res.status(200).json({
-        responseCode: "00",
-        status: "success",
-        message: "OTP resent successfully"
-    });
-});
 
 
 // loginUser.js
@@ -264,7 +258,7 @@ const resetPassword = catchAsync(async (req, res, next) => {
         return next(new AppError("No OTP request found. Please request OTP again", 404));
     }
 
-    if (otpData.otp !== Number(otp)) {
+    if (otpData.otp !== otp) {
         return next(new AppError("Invalid OTP", 400));
     }
 
@@ -295,40 +289,198 @@ const resetPassword = catchAsync(async (req, res, next) => {
 });
 
 
+const createSellerProfile = catchAsync(async (req, res, next) => {
 
+    const userId = req.user.id;
+
+    const {
+        dateOfBirth,
+        location,
+        addressLine1,
+        paypalEmail
+    } = req.body;
+
+    // Check user exists
+    const user = await User.findById(userId);
+
+    if (!user) {
+        return next(new AppError("User not found", 404));
+    }
+
+    // Check if seller profile already exists
+    const existingProfile = await Seller.findOne({ userId });
+
+    if (existingProfile) {
+        return next(
+            new AppError("Seller profile already exists", 409)
+        );
+    }
+
+    // Create seller profile
+    const sellerProfile = await Seller.create({
+        userId,
+        dateOfBirth,
+        location,
+        addressLine1,
+        paypalEmail,
+        status: "approved"
+    });
+
+    // Add seller role if not already present
+    await User.findByIdAndUpdate(userId, {
+        $addToSet: {
+            roles: "seller"
+        }
+    });
+
+    successResponse(res, 201, sanitizeResponse(sellerProfile));
+
+});
+
+const getSellerProfile = catchAsync(async (req, res, next) => {
+
+    const { userId } = req.params;
+
+    const seller = await Seller.findOne({ userId })
+        .populate("userId", "name email phone image roles status");
+
+    if (!seller) {
+        return next(new AppError("Seller profile not found", 404));
+    }
+
+    successResponse(res, 200, sanitizeResponse(seller));
+
+});
+
+
+const updateSellerProfile = catchAsync(async (req, res, next) => {
+
+    const { userId } = req.params;
+
+    // Seller can only update himself
+    if (
+        !req.user.roles.includes("admin") &&
+        req.user.id !== userId
+    ) {
+        return next(
+            new AppError("You are not authorized to update this seller profile.", 403)
+        );
+    }
+
+    const seller = await Seller.findOne({ userId });
+
+    if (!seller) {
+        return next(new AppError("Seller profile not found", 404));
+    }
+
+    const {
+        dateOfBirth,
+        location,
+        addressLine1,
+        paypalEmail
+    } = req.body;
+
+    if (dateOfBirth !== undefined)
+        seller.dateOfBirth = dateOfBirth;
+
+    if (location !== undefined)
+        seller.location = location;
+
+    if (addressLine1 !== undefined)
+        seller.addressLine1 = addressLine1;
+
+    if (paypalEmail !== undefined)
+        seller.paypalEmail = paypalEmail;
+
+    await seller.save();
+
+    successResponse(res, 200, sanitizeResponse(seller));
+
+});
+
+
+const deleteSellerProfile = catchAsync(async (req, res, next) => {
+
+    const { userId } = req.params;
+
+    if (
+        !req.user.roles.includes("admin") &&
+        req.user.id !== userId
+    ) {
+        return next(
+            new AppError("You are not authorized to delete this seller profile.", 403)
+        );
+    }
+
+    const seller = await Seller.findOne({ userId });
+
+    if (!seller) {
+        return next(new AppError("Seller profile not found", 404));
+    }
+
+    seller.status = "inactive";
+
+    await seller.save();
+
+    await User.findByIdAndUpdate(userId, {
+        $pull: {
+            roles: "seller"
+        }
+    });
+
+    res.status(201).json({
+        responseCode: "00",
+        status: "success",
+        message: "Seller profile deleted successfully.",
+    });
+
+});
 
 const addUserReview = catchAsync(async (req, res, next) => {
-    const { sellerId, rating, comment } = req.body;
+    const revieweeId = req.params.revieweeId;
+    const { orderId, rating, comment } = req.body;
     const reviewerId = req.user.id;
 
-    if (sellerId === reviewerId) {
+    if (revieweeId === reviewerId) {
         return next(new AppError("You cannot review yourself", 400));
     }
 
-    const seller = await User.findById(sellerId);
+    const seller = await User.findById(revieweeId);
     if (!seller) {
         return next(new AppError("User not found", 404));
     }
 
-    if (!["seller", "influencer"].includes(seller.role)) {
+    const relevantOrder = await Order.findOne({ _id: orderId, buyerId: reviewerId });
+
+    if (!relevantOrder || relevantOrder?.status !== 'completed') {
+        return next(new AppError("No Completed Order Found", 404));
+    }
+
+    console.log("SELLERRRR ROLE", seller?.roles)
+
+
+    if (!seller.roles.some(role => ["seller", "influencer"].includes(role))) {
         return next(new AppError("You can only review sellers or influencers", 400));
     }
 
-    const existingReview = await UserReview.findOne({ sellerId, reviewerId });
+    const existingReview = await UserReview.findOne({ revieweeId, reviewerId });
     if (existingReview) {
         return next(new AppError("You have already reviewed this user", 400));
     }
 
-    await UserReview.create({ sellerId, reviewerId, rating, comment });
+    await UserReview.create({ revieweeId, reviewerId, rating, comment });
 
     const stats = await UserReview.aggregate([
-        { $match: { sellerId: seller._id } },
+        { $match: { revieweeId: seller._id } },
         { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
     ]);
 
-    await User.findByIdAndUpdate(sellerId, {
-        averageRating: Math.round(stats[0].avgRating * 10) / 10,
-        totalReviews: stats[0].count,
+    const averageRating = Math.round(stats[0].avgRating * 10) / 10;
+    const totalReviews = stats[0].count;
+
+    await User.findByIdAndUpdate(revieweeId, {
+        averageRating,
+        totalReviews,
     });
 
     res.status(201).json({
@@ -336,30 +488,31 @@ const addUserReview = catchAsync(async (req, res, next) => {
         status: "success",
         message: "Review added successfully",
         data: {
-            averageRating: Math.round(stats[0].avgRating * 10) / 10,
-            totalReviews: stats[0].count,
+            averageRating,
+            totalReviews,
         }
     });
 });
 
-const getUserReviews = catchAsync(async (req, res, next) => {
-    const { sellerId } = req.params;
 
-    const seller = await User.findById(sellerId).select("averageRating totalReviews name");
-    if (!seller) {
+const getUserReviews = catchAsync(async (req, res, next) => {
+    const { revieweeId } = req.params;
+
+    const reviewee = await User.findById(revieweeId).select("averageRating totalReviews name");
+    if (!reviewee) {
         return next(new AppError("User not found", 404));
     }
 
-    const reviews = await UserReview.find({ sellerId })
+    const reviews = await UserReview.find({ revieweeId })
         .populate("reviewerId", "name image")
         .sort({ createdAt: -1 });
 
     res.status(200).json({
         responseCode: "00",
         status: "success",
-        averageRating: seller.averageRating,
-        totalReviews: seller.totalReviews,
-        data: reviews,
+        averageRating: reviewee.averageRating,
+        totalReviews: reviewee.totalReviews,
+        data: sanitizeResponse(reviews),
     });
 });
 
@@ -377,13 +530,16 @@ const updateUserReview = catchAsync(async (req, res, next) => {
     await review.save();
 
     const stats = await UserReview.aggregate([
-        { $match: { sellerId: review.sellerId } },
+        { $match: { revieweeId: review.revieweeId } },
         { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
     ]);
 
-    await User.findByIdAndUpdate(review.sellerId, {
-        averageRating: Math.round(stats[0].avgRating * 10) / 10,
-        totalReviews: stats[0].count,
+    const averageRating = Math.round(stats[0].avgRating * 10) / 10;
+    const totalReviews = stats[0].count;
+
+    await User.findByIdAndUpdate(review.revieweeId, {
+        averageRating,
+        totalReviews,
     });
 
     res.status(200).json({
@@ -401,7 +557,7 @@ const deleteUserReview = catchAsync(async (req, res, next) => {
         return next(new AppError("Review not found", 404));
     }
 
-    const sellerId = review.sellerId;
+    const sellerId = review.revieweeId;
     await review.deleteOne();
 
     const stats = await UserReview.aggregate([
@@ -409,9 +565,12 @@ const deleteUserReview = catchAsync(async (req, res, next) => {
         { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
     ]);
 
+    const averageRating = stats.length ? Math.round(stats[0].avgRating * 10) / 10 : 0;
+    const totalReviews = stats.length ? stats[0].count : 0;
+
     await User.findByIdAndUpdate(sellerId, {
-        averageRating: stats.length ? Math.round(stats[0].avgRating * 10) / 10 : 0,
-        totalReviews: stats.length ? stats[0].count : 0,
+        averageRating,
+        totalReviews
     });
 
     res.status(200).json({
@@ -421,4 +580,20 @@ const deleteUserReview = catchAsync(async (req, res, next) => {
     });
 });
 
-export { signupUser, loginUser, verifyOTP, resendOtp, logOut, resetPassword, forgotPassword, addUserReview, getUserReviews, updateUserReview, deleteUserReview }
+export {
+    signupUser,
+    loginUser,
+    verifyOTP,
+    resendOtp,
+    logOut,
+    resetPassword,
+    forgotPassword,
+    addUserReview,
+    getUserReviews,
+    updateUserReview,
+    deleteUserReview,
+    createSellerProfile,
+    getSellerProfile,
+    updateSellerProfile,
+    deleteSellerProfile
+}

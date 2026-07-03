@@ -1,6 +1,9 @@
+import Category from "../models/category.model.js";
 import Favourite from "../models/favourite.model.js";
+import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
-import Review from "../models/product.review.model.js";
+import ProductReview from "../models/product.review.model.js";
+// import Review from "../models/product.review.model.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
@@ -9,11 +12,6 @@ import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 const createProduct = catchAsync(async (req, res, next) => {
     let { sellType, ownerId, ...rest } = req.body;
 
-    // const allowedRoles = ["seller", "influencer", "admin"];
-
-    // if (!allowedRoles.includes(req.user.role)) {
-    //     return next(new AppError("You are not allowed to create a product", 403));
-    // }
 
     if (req.user.role === "seller" && req.user.status !== "active") {
         return next(new AppError("Your seller account is not active. Contact support.", 403));
@@ -170,9 +168,27 @@ const getProductsByOwner = catchAsync(async (req, res, next) => {
 
 });
 
+const getProductsByCategory = catchAsync(async (req, res, next) => {
+    const categoryId = req.params.categoryId;
+    const products = await Product.find({
+        categoryId
+    });
+
+    if (!products) {
+        return next(new AppError('Prodcut Not found', 404))
+    }
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(products)
+    });
+
+});
 
 
-const updateProductData = async (req, res,next) => {
+
+const updateProductData = async (req, res, next) => {
     const updated = await Product.findByIdAndUpdate(
         req.params.id,
         req.body,
@@ -311,7 +327,8 @@ const removeItemFromFav = catchAsync(async (req, res, next) => {
 
 
 const addReview = catchAsync(async (req, res, next) => {
-    const { productId, rating, comment } = req.body;
+    const productId = req.params.productId;
+    const { orderId, rating, comment } = req.body;
     const userId = req.user.id;
 
     const product = await Product.findById(productId);
@@ -319,30 +336,42 @@ const addReview = catchAsync(async (req, res, next) => {
         return next(new AppError("Product not found", 404));
     }
 
-    const existingReview = await Review.findOne({ productId, userId });
+    const existingReview = await ProductReview.findOne({ productId, userId });
+
     if (existingReview) {
         return next(new AppError("You have already reviewed this product", 400));
     }
 
-    await Review.create({ productId, userId, rating, comment });
+    const relevantOrder = await Order.findOne({ _id: orderId, buyerId: userId });
 
-    const stats = await Review.aggregate([
+
+    if (!relevantOrder || relevantOrder?.status !== 'completed') {
+        return next(new AppError("No Completed Order Found", 404));
+    }
+
+
+    await ProductReview.create({ productId, userId, rating, comment });
+
+    const stats = await ProductReview.aggregate([
         { $match: { productId: product._id } },
         { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
     ]);
 
+
+    const averageRating = Math.round(stats[0]?.avgRating * 10) / 10;
+    const totalReviews = stats[0]?.count;
+
     await Product.findByIdAndUpdate(productId, {
-        averageRating: Math.round(stats[0].avgRating * 10) / 10,
-        totalReviews: stats[0].count,
+        averageRating,
+        totalReviews
     });
 
     res.status(201).json({
         responseCode: "00",
         status: "success",
-        message: "Review added successfully",
         data: {
-            averageRating: Math.round(stats[0].avgRating * 10) / 10,
-            totalReviews: stats[0].count,
+            averageRating,
+            totalReviews
         }
     });
 });
@@ -350,7 +379,7 @@ const addReview = catchAsync(async (req, res, next) => {
 const getProductReviews = catchAsync(async (req, res, next) => {
     const { productId } = req.params;
 
-    const reviews = await Review.find({ productId })
+    const reviews = await ProductReview.find({ productId })
         .populate("userId", "name image")
         .sort({ createdAt: -1 });
 
@@ -364,7 +393,7 @@ const getProductReviews = catchAsync(async (req, res, next) => {
         status: "success",
         averageRating: product.averageRating,
         totalReviews: product.totalReviews,
-        data: reviews,
+        data: sanitizeResponse(reviews),
     });
 });
 
@@ -372,7 +401,7 @@ const updateReview = catchAsync(async (req, res, next) => {
     const { rating, comment } = req.body;
     const userId = req.user.id;
 
-    const review = await Review.findOne({ _id: req.params.reviewId, userId });
+    const review = await ProductReview.findOne({ _id: req.params.reviewId, userId });
     if (!review) {
         return next(new AppError("Review not found", 404));
     }
@@ -381,14 +410,17 @@ const updateReview = catchAsync(async (req, res, next) => {
     if (comment !== undefined) review.comment = comment;
     await review.save();
 
-    const stats = await Review.aggregate([
+    const stats = await ProductReview.aggregate([
         { $match: { productId: review.productId } },
         { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
     ]);
 
+    const averageRating = Math.round(stats[0].avgRating * 10) / 10;
+    const totalReviews = stats[0].count;
+
     await Product.findByIdAndUpdate(review.productId, {
-        averageRating: Math.round(stats[0].avgRating * 10) / 10,
-        totalReviews: stats[0].count,
+        averageRating,
+        totalReviews,
     });
 
     res.status(200).json({
@@ -401,7 +433,7 @@ const updateReview = catchAsync(async (req, res, next) => {
 const deleteReview = catchAsync(async (req, res, next) => {
     const userId = req.user.id;
 
-    const review = await Review.findOne({ _id: req.params.reviewId, userId });
+    const review = await ProductReview.findOne({ _id: req.params.reviewId, userId });
     if (!review) {
         return next(new AppError("Review not found", 404));
     }
@@ -409,14 +441,18 @@ const deleteReview = catchAsync(async (req, res, next) => {
     const productId = review.productId;
     await review.deleteOne();
 
-    const stats = await Review.aggregate([
+    const stats = await ProductReview.aggregate([
         { $match: { productId } },
         { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
     ]);
 
+    const averageRating = stats.length ? Math.round(stats[0].avgRating * 10) / 10 : 0;
+    const totalReviews = stats.length ? stats[0].count : 0;
+
+
     await Product.findByIdAndUpdate(productId, {
-        averageRating: stats.length ? Math.round(stats[0].avgRating * 10) / 10 : 0,
-        totalReviews: stats.length ? stats[0].count : 0,
+        averageRating,
+        totalReviews,
     });
 
     res.status(200).json({
@@ -426,4 +462,158 @@ const deleteReview = catchAsync(async (req, res, next) => {
     });
 });
 
-export { createProduct, getProductByStatus, getSingleProduct, searchProdByFilter, getProductsByOwner, updateProductData, updateProductStatus, deleteProduct, addProductToFavourite, getBuyerFavourites, removeItemFromFav, addReview, getProductReviews, updateReview, deleteReview }
+
+
+const createCategory = catchAsync(async (req, res, next) => {
+
+    const { name, parentId } = req.body;
+
+    let level = 1;
+
+    if (parentId) {
+
+        const parent = await Category.findById(parentId);
+
+        if (!parent) {
+            return next(new AppError("Parent category not found", 404));
+        }
+
+        level = parent.level + 1;
+    }
+
+    const exists = await Category.findOne({
+        name,
+        parentId: parentId || null
+    });
+
+    if (exists) {
+        return next(
+            new AppError("Category already exists", 400)
+        );
+    }
+
+    const category = await Category.create({
+        name,
+        parentId: parentId || null,
+        level
+    });
+
+    res.status(201).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(category),
+    });
+});
+
+
+const getRootCategories = catchAsync(async (req, res) => {
+    const { parentId } = req.query;
+
+    console.log("Parrrrent Id", parentId)
+
+    const filter = {
+        isActive: true
+    };
+
+    if (parentId) {
+        filter.parentId = parentId;
+    } else {
+        filter.parentId = null;
+    }
+
+    const categories = await Category.find(filter)
+        .sort({ name: 1 });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(categories),
+    });
+});
+
+const getChildCategories = catchAsync(async (req, res) => {
+
+    const { parentId } = req.params;
+
+    const categories = await Category.find({
+        parentId,
+        isActive: true
+    });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(categories),
+    });
+
+});
+
+const getCategory = catchAsync(async (req, res, next) => {
+
+    const category = await Category.findById(req.params.id);
+
+    if (!category) {
+        return next(
+            new AppError("Category not found", 404)
+        );
+    }
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(category),
+    });
+
+});
+
+const updateCategory = catchAsync(async (req, res, next) => {
+
+    const {
+        name,
+        isActive
+    } = req.body;
+
+    const category = await Category.findById(req.params.id);
+
+    if (!category) {
+        return next(
+            new AppError("Category not found", 404)
+        );
+    }
+
+    category.name = name;
+    category.isActive = isActive;
+
+    await category.save();
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: sanitizeResponse(category),
+    });
+
+});
+
+export {
+    createProduct,
+    getProductByStatus,
+    getSingleProduct,
+    searchProdByFilter,
+    getProductsByOwner,
+    getProductsByCategory,
+    updateProductData,
+    updateProductStatus,
+    deleteProduct,
+    addProductToFavourite,
+    getBuyerFavourites,
+    removeItemFromFav,
+    addReview,
+    getProductReviews,
+    updateReview,
+    deleteReview,
+    createCategory,
+    getRootCategories,
+    getChildCategories,
+    getCategory,
+    updateCategory
+}

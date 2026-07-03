@@ -11,11 +11,11 @@ const ProductSchema = new mongoose.Schema(
     salePrice: { type: Number, required: true },
     imageUrls: [{ type: String }], // uploaded to S3 or Cloud
 
-    categories: [{ type: Array, default: null }],
+    // categories: [{ type: Array, default: null }],
 
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ProductCategory",
+      ref: "Catagory",
     },
 
     location: {

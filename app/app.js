@@ -15,6 +15,7 @@ import errorHandler from './middleware/error.handler.js';
 import chatRoutes from "./routes/chat.routes.js";
 import favouriteRoutes from "./routes/favourites.routes.js";
 import notificationRoutes from "./routes/notifications.routes.js";
+import fileRoutes from "./routes/file.routes.js";
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use("/api/v1/order", orderRoutes);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/favourite", favouriteRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/files", fileRoutes);
 
 
 

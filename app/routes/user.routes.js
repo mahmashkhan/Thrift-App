@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { loginUser, logOut, signupUser, verifyOTP, forgotPassword, resetPassword, resendOtp, addUserReview, getUserReviews, updateUserReview, deleteUserReview } from "../controllers/user.controller.js";
+import { loginUser, logOut, signupUser, verifyOTP, forgotPassword, resetPassword, resendOtp, addUserReview, getUserReviews, updateUserReview, deleteUserReview, createSellerProfile, getSellerProfile, updateSellerProfile, deleteSellerProfile } from "../controllers/user.controller.js";
 import { signupValidation } from "../validation/user.validation.js";
 import {
     getMyNotifications, markAsRead
 } from "../controllers/notification.controller.js";
-import { getProfile, editProfile, deleteProfile, upgradeToSeller } from "../controllers/profile.controller.js";
+import { getProfile, editProfile, deleteProfile } from "../controllers/profile.controller.js";
 import { validate } from "../middleware/validate.params.js";
-import { loginValidator, signupValidator, otpValidator, editProfileValidator } from "../validators/auth.validators.js"
+import { loginValidator, signupValidator, otpValidator, editProfileValidator, sellerProfileValidator, resendOtpValidator } from "../validators/auth.validators.js"
 import { allowedadminOrOwner } from "../middleware/authorizationMiddleware.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { getMyFavourites, toggleFavourite } from "../controllers/favourites.controller.js";
@@ -21,12 +21,12 @@ import {
     getMyPreferences,
 } from "../controllers/category.controller.js";
 import { addUserReviewValidator, updateUserReviewValidator } from "../validators/review.validators.js";
-import { setPreferencesValidator, upgradeToSellerValidator } from "../validators/preference.validators.js";
+import { setPreferencesValidator } from "../validators/preference.validators.js";
 const router = Router();
 
 
 router.post("/signup", validate(signupValidator), signupUser);
-router.post("/resend/otp", validate(signupValidator), resendOtp);
+router.post("/resend/otp", validate(resendOtpValidator), resendOtp);
 router.post('/verify/otp', validate(otpValidator), verifyOTP);
 router.post("/login", validate(loginValidator), loginUser);
 router.post("/logout", logOut);
@@ -35,11 +35,17 @@ router.post("/logout", logOut);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
+
+// Seller Profile
+router.post("/seller/profile", validate(sellerProfileValidator), allowedUsers("buyer"), createSellerProfile);
+router.get("/seller/profile/:userId", allowedUsers("seller", "admin"), getSellerProfile);
+router.put("/seller/profile/:userId", allowedUsers("seller", "admin"), updateSellerProfile);
+router.delete("/seller/profile/:userId", allowedUsers("seller", "admin"), deleteSellerProfile);
+
 //Profile
 router.get("/profile/:id", getProfile);
 router.patch("/update/profile/:id", allowedadminOrOwner, validate(editProfileValidator), editProfile);
 router.delete("/delete/profile/:id", allowedadminOrOwner, deleteProfile);
-router.patch("/upgrade-to-seller", validate(upgradeToSellerValidator), allowedUsers("buyer"), upgradeToSeller);
 
 //Preferences
 router.get("/options", getPreferenceOptions);
@@ -56,13 +62,13 @@ router.get("/preferences/me", allowedUsers(), getMyPreferences);
 //notification
 router.get('/my', verifyToken, getMyNotifications);
 
-router.patch('/read-all',verifyToken, validate(loginValidator), markAsRead);
+router.patch('/read-all', verifyToken, validate(loginValidator), markAsRead);
 // router.delete('/:id', validate(loginValidator), deleteNotification);
 
 //user reviews (for sellers & influencers)
-router.post("/review/add", validate(addUserReviewValidator), allowedUsers(), addUserReview);
-router.get("/review/:sellerId", allowedUsers(), getUserReviews);
-router.put("/review/update/:reviewId", validate(updateUserReviewValidator), allowedUsers(), updateUserReview);
-router.delete("/review/delete/:reviewId", allowedUsers(), deleteUserReview);
+router.post("/review/:revieweeId", validate(addUserReviewValidator), allowedUsers(), addUserReview);
+router.get("/review/:revieweeId", allowedUsers(), getUserReviews);
+router.put("/review/:reviewId", validate(updateUserReviewValidator), allowedUsers(), updateUserReview);
+router.delete("/review/:reviewId", allowedUsers(), deleteUserReview);
 
 export default router;

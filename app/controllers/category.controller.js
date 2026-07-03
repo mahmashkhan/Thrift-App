@@ -1,5 +1,5 @@
 import PreferenceOption from "../models/preferenceOption.model.js";
-import User from "../models/user.model.js";
+import {User} from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 

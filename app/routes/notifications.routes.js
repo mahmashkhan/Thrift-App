@@ -5,8 +5,8 @@ const router = Router();
 
 router.post('/send/all', allowedUsers("admin"), sendNotificationToAll);
 // routes/notification.routes.js
-router.post('/send/:userId', allowedUsers("admin"), sendNotificationToOne);
-router.get('/get', allowedUsers("admin"), getMyNotifications);
+router.post('/send/:userId', allowedUsers(), sendNotificationToOne);
+router.get('/get', allowedUsers(), getMyNotifications);
 
 
 export default router;

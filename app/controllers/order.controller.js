@@ -2,7 +2,7 @@ import Bid from "../models/bid.model.js";
 import Product from "../models/product.model.js";
 import AppError from "../utils/AppError.js";
 import Cart from "../models/cart.model.js"
-import User from '../models/user.model.js';
+import {User} from '../models/user.model.js';
 import catchAsync from "../utils/catchAsync.js";
 import { createCartItem } from "../utils/createCartItem.js";
 import Order from "../models/order.model.js";

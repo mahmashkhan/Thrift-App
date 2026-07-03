@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import User from "../models/user.model.js";
+import { User } from "../models/user.model.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -9,7 +9,6 @@ const secret = process.env.JWT_SECRET;
 export const allowedUsers = (...allowedRoles) => {
     return async (req, res, next) => {
 
-        console.log("HEADERSSSSSS", req?.headers)
         try {
             // Get authorization header
             const authHeader = req.headers.authorization || req.headers.Authorization;
@@ -32,10 +31,13 @@ export const allowedUsers = (...allowedRoles) => {
 
             // Save user to request
             req.user = user;
-            
+
 
             // If middleware has role restrictions, validate
-            if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+            if (
+                allowedRoles.length > 0 &&
+                !user.roles.some(role => allowedRoles.includes(role))
+            ) {
                 return res.status(403).json({
                     status: "fail",
                     responseCode: "01",

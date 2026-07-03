@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const ReviewSchema = new mongoose.Schema(
+const ProductReviewSchema = new mongoose.Schema(
   {
     productId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -26,7 +26,7 @@ const ReviewSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-ReviewSchema.index({ productId: 1, userId: 1 }, { unique: true });
+ProductReviewSchema.index({ productId: 1, userId: 1 }, { unique: true });
 
-const Review = mongoose.model("Review", ReviewSchema);
-export default Review;
+const ProductReview = mongoose.model("ProductReview", ProductReviewSchema);
+export default ProductReview;

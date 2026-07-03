@@ -6,17 +6,40 @@ export const loginValidator = Joi.object({
 });
 
 export const signupValidator = Joi.object({
-    name: Joi.string().required(),
-    email: Joi.string().email().required(),
-    password: Joi.string().required(),
-    role: Joi.string()
-        .valid("admin", "seller", "buyer")
-        .required(),
-    phone: Joi.string().length(11).optional().allow(""),
-    address: Joi.string().optional().allow(""),
-    imageUrl: Joi.string().optional().allow("")
 
-})
+    name: Joi.string().required(),
+
+    email: Joi.string().email().required(),
+
+    password: Joi.string().required(),
+
+    phone: Joi.string()
+        .length(11)
+        .optional()
+        .allow(""),
+
+    imageUrl: Joi.string()
+        .optional()
+        .allow("")
+});
+
+export const resendOtpValidator = Joi.object({
+    email: Joi.string().email().required()
+});
+
+export const sellerProfileValidator = Joi.object({
+
+    dateOfBirth: Joi.date().required(),
+
+    location: Joi.string().required(),
+
+    addressLine1: Joi.string().required(),
+
+    paypalEmail: Joi.string()
+        .email()
+        .required()
+
+});
 
 export const otpValidator = Joi.object({
     email: Joi.string().email().required(),

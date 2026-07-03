@@ -1,4 +1,4 @@
-import User from "../models/user.model.js";
+import {User} from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
 import bcrypt from "bcrypt";
 import catchAsync from "../utils/catchAsync.js";
@@ -110,42 +110,5 @@ const deleteProfile = catchAsync(async (req, res, next) => {
 });
 
 
-const upgradeToSeller = catchAsync(async (req, res, next) => {
-    const userId = req.user.id;
-    const { name, dateOfBirth, location, address } = req.body;
 
-    if (!name || !dateOfBirth || !location || !address) {
-        return next(new AppError("Name, date of birth, location and address are required", 400));
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-        return next(new AppError("User not found", 404));
-    }
-
-    if (user.role !== "buyer") {
-        return next(new AppError("Only buyers can upgrade to seller", 400));
-    }
-
-    const updated = await User.findByIdAndUpdate(
-        userId,
-        {
-            role: "seller",
-            name,
-            dateOfBirth,
-            location,
-            address,
-            status: "active",
-        },
-        { new: true }
-    );
-
-    res.status(200).json({
-        responseCode: "00",
-        status: "success",
-        message: "Your account has been upgraded to seller successfully",
-        data: sanitizeResponse(updated),
-    });
-});
-
-export { getProfile, editProfile, deleteProfile, upgradeToSeller };
+export { getProfile, editProfile, deleteProfile };

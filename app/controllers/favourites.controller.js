@@ -1,5 +1,5 @@
 // controllers/favourite.controller.js
-import User from '../models/user.model.js';
+import {User} from '../models/user.model.js';
 import Product from '../models/product.model.js';
 import catchAsync from '../utils/catchAsync.js';
 import { successResponse, errorResponse } from '../utils/common/responseObject.js';

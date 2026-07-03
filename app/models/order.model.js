@@ -21,7 +21,8 @@ const OrderSchema = new mongoose.Schema({
     totalSellerGets: Number,
     shipping_type: { type: String, enum: ["self_selling", "sell_for_me"] },
     is_influencer_order: Boolean,
-    status: { type: String, enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"], default: "pending" },
+    status: { type: String, enum: ["pending", "confirmed", "shipped", "completed", "cancelled"], default: "pending" },
 }, { timestamps: true });
 
-export default mongoose.model("Order", OrderSchema);
+const Order = mongoose.model("Order", OrderSchema);
+export default Order;

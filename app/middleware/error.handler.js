@@ -1,6 +1,7 @@
 const globalErrorHandler = (err, req, res, next) => {
 
 
+  console.log(err)
   // Handle Mongoose CastError (invalid ObjectId)
   if (err.name === "CastError") {
     err.statusCode = 400;

@@ -1,5 +1,5 @@
 // controllers/notification.controller.js
-import User from '../models/user.model.js';
+import {User} from '../models/user.model.js';
 import Notification from '../models/notification.model.js';
 import { successResponse, errorResponse } from '../utils/common/responseObject.js';
 import catchAsync from '../utils/catchAsync.js';
@@ -119,6 +119,22 @@ const getMyNotifications = catchAsync(async (req, res) => {
     // Filter out null (expired notifications get populated as null)
     const active = user.notifications.filter(n => n.notification !== null);
     const unreadCount = active.filter(n => !n.isRead).length;
+
+    await User.updateOne(
+        { _id: req.user.id },
+        {
+            $set: {
+                "notifications.$[item].isRead": true
+            }
+        },
+        {
+            arrayFilters: [
+                {
+                    "item.isRead": false
+                }
+            ]
+        }
+    );
 
     // ✅ Optional: clean up expired refs from user document
     await User.updateOne(

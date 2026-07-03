@@ -18,10 +18,3 @@ export const updatePreferenceOptionValidator = Joi.object({
     options: Joi.array().items(Joi.string().trim()).min(1).optional(),
     order: Joi.number().integer().min(0).optional(),
 });
-
-export const upgradeToSellerValidator = Joi.object({
-    name: Joi.string().trim().required(),
-    dateOfBirth: Joi.date().required(),
-    location: Joi.string().trim().required(),
-    address: Joi.string().trim().required(),
-});

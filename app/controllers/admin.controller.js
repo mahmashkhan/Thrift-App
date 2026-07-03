@@ -1,8 +1,9 @@
-import User from "../models/user.model.js";
+import {Influencer, User} from "../models/user.model.js";
 import catchAsync from "../utils/catchAsync.js";
 import bcrypt from "bcryptjs";
 import AppError from "../utils/AppError.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
+import { successResponse } from "../utils/common/responseObject.js";
 
 
 const listUsers = catchAsync(async (req, res) => {
@@ -151,25 +152,30 @@ const adminCreateUser = catchAsync(async (req, res, next) => {
         name,
         email,
         password: hashedPassword,
-        imageUrl,
-        role,
+        image: imageUrl,
+        roles: role === "admin"
+            ? ["admin"]
+            : ["buyer", "influencer"],
 
         status: "active",
         isVerified: true
     };
 
-    // Add influencer-only fields
-    if (role === "influencer") {
-        payload.commissionRate = commissionRate;
-    }
-
     const newUser = await User.create(payload);
 
-    return res.status(201).json({
-        responseCode: "00",
-        status: "success",
-        data: sanitizeResponse(newUser)
-    });
+    // Create influencer profile
+    if (role === "influencer") {
+
+        await Influencer.create({
+            userId: newUser._id,
+            commissionRate,
+            status: "approved"
+        });
+
+    }
+
+    successResponse(res, 201, sanitizeResponse(newUser));
+
 });
 
 const deleteUser = catchAsync(async (req, res, next) => {
