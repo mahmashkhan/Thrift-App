@@ -2,12 +2,13 @@ import Bid from "../models/bid.model.js";
 import Product from "../models/product.model.js";
 import AppError from "../utils/AppError.js";
 import Cart from "../models/cart.model.js"
-import {User} from '../models/user.model.js';
+import { User } from '../models/user.model.js';
 import catchAsync from "../utils/catchAsync.js";
 import { createCartItem } from "../utils/createCartItem.js";
 import Order from "../models/order.model.js";
 import { io } from "../server.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
+import { successResponse } from "../utils/common/responseObject.js";
 
 
 const createBid = catchAsync(async (req, res, next) => {
@@ -108,8 +109,6 @@ const acceptBid = catchAsync(async (req, res, next) => {
     });
 });
 
-
-
 const rejectBid = catchAsync(async (req, res, next) => {
     const { bidId } = req.params;
 
@@ -140,6 +139,38 @@ const rejectBid = catchAsync(async (req, res, next) => {
         status: "success",
         message: "Bid Rejected Successfully"
     });
+});
+
+
+const withdrawBid = catchAsync(async (req, res, next) => {
+
+    const { bidId } = req.params;
+
+    const bid = await Bid.findById(bidId);
+
+    if (!bid) {
+        return next(new AppError("Bid not found", 404));
+    }
+
+    // Only bidder can withdraw
+    if (bid.buyerId.toString() !== req.user.id.toString()) {
+        return next(new AppError("You are not authorized to withdraw this bid", 403));
+    }
+
+    // Only pending bids can be withdrawn
+    if (bid.status !== "pending") {
+        return next(
+            new AppError(`Cannot withdraw a ${bid.status} bid`, 400)
+        );
+    }
+
+    bid.status = "withdrawn";
+    await bid.save();
+
+    successResponse(res, 200, {
+        message: "Bid withdrawn successfully."
+    });
+
 });
 
 
@@ -406,6 +437,18 @@ const getProductOrders = async (req, res, next) => {
 
 
 
-export { createBid, getProductBids, acceptBid, rejectBid, addToCart, ViewCart, checkOut, getBuyerOrders, getOwnerOrders, getProductOrders }
+export {
+    createBid,
+    getProductBids,
+    acceptBid,
+    rejectBid,
+    withdrawBid,
+    addToCart,
+    ViewCart,
+    checkOut,
+    getBuyerOrders,
+    getOwnerOrders,
+    getProductOrders
+}
 
 

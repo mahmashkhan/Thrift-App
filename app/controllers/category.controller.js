@@ -1,7 +1,10 @@
+import Category from "../models/category.model.js";
 import PreferenceOption from "../models/preferenceOption.model.js";
 import {User} from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
+import { successResponse } from "../utils/common/responseObject.js";
+import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 
 // ========== PUBLIC ==========
 
@@ -86,29 +89,50 @@ const deletePreferenceOption = catchAsync(async (req, res, next) => {
 // ========== USER PREFERENCES ==========
 
 const setPreferences = catchAsync(async (req, res, next) => {
+
     const userId = req.user.id;
-    const { brands, sizes, styles } = req.body;
 
-    const preferences = {};
-    if (Array.isArray(brands)) preferences["preferences.brands"] = brands;
-    if (Array.isArray(sizes)) preferences["preferences.sizes"] = sizes;
-    if (Array.isArray(styles)) preferences["preferences.styles"] = styles;
+    const {
+        brands = [],
+        categories = [],
+        sizes = [],
+        styles = []
+    } = req.body;
 
-    const updated = await User.findByIdAndUpdate(
+    // Optional: Validate category IDs exist
+    if (categories.length > 0) {
+        const count = await Category.countDocuments({
+            _id: { $in: categories }
+        });
+
+        if (count !== categories.length) {
+            return next(
+                new AppError("One or more categories are invalid.", 400)
+            );
+        }
+    }
+
+    const user = await User.findByIdAndUpdate(
         userId,
-        { ...preferences, hasSetPreferences: true },
-        { new: true }
-    );
-
-    res.status(200).json({
-        responseCode: "00",
-        status: "success",
-        message: "Preferences saved successfully",
-        data: {
-            preferences: updated.preferences,
+        {
+            preferences: {
+                brands,
+                categories,
+                sizes,
+                styles
+            },
+            hasSetPreferences: true
         },
-    });
+        {
+            new: true,
+            runValidators: true
+        }
+    ).select("preferences hasSetPreferences");
+
+    successResponse(res, 200, sanitizeResponse(user));
+
 });
+
 
 const skipPreferences = catchAsync(async (req, res) => {
     const userId = req.user.id;

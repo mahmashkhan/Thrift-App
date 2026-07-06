@@ -1,9 +1,23 @@
 import Joi from "joi";
 
 export const setPreferencesValidator = Joi.object({
-    brands: Joi.array().items(Joi.string().trim()).optional(),
-    sizes: Joi.array().items(Joi.string().trim()).optional(),
-    styles: Joi.array().items(Joi.string().trim()).optional(),
+
+    brands: Joi.array()
+        .items(Joi.string())
+        .default([]),
+
+    categories: Joi.array()
+        .items(Joi.string())
+        .default([]),
+
+    sizes: Joi.array()
+        .items(Joi.string())
+        .default([]),
+
+    styles: Joi.array()
+        .items(Joi.string())
+        .default([])
+
 });
 
 export const createPreferenceOptionValidator = Joi.object({

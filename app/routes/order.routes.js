@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { acceptBid, addToCart, checkOut, createBid, getBuyerOrders, getOwnerOrders, getProductBids, getProductOrders, 
-     rejectBid, ViewCart } from "../controllers/order.controller.js";
+     rejectBid, ViewCart, 
+     withdrawBid} from "../controllers/order.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { allowedUsers } from "../middleware/authorizationMiddleware.js";
 import { createBidValidator } from "../validators/order.validators.js";
@@ -12,6 +13,7 @@ router.post('/bid/create', allowedUsers(), validate(createBidValidator), createB
 router.get('/bid/get/:productId', allowedUsers("admin", "seller"), getProductBids);
 router.post('/bid/accept/:bidId', allowedUsers("admin", "seller"), acceptBid);
 router.post('/bid/reject/:bidId', allowedUsers("admin", "seller"), rejectBid);
+router.post('/bid/withdraw/:bidId', allowedUsers(), withdrawBid);
 router.post('/cart/add', allowedUsers(), addToCart);
 router.get('/cart/get/:buyerId', allowedUsers(), ViewCart);
 router.post('/checkout', allowedUsers(), checkOut);

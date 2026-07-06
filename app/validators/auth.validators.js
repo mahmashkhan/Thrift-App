@@ -55,5 +55,18 @@ export const editProfileValidator = Joi.object({
     password: Joi.string().optional().allow(""),
     imageUrl: Joi.string().optional().allow("")
 
-}) 
+})
+
+export const resetForgottenPassValidator = Joi.object({
+    email: Joi.string().required().allow(""),
+    otp: Joi.string().required().allow(""),
+    newPassword: Joi.string().required().allow(""),
+    confirmPassword: Joi.string().required().allow("")
+})
+
+export const changePasswordValidator = Joi.object({
+    currentPassword: Joi.string().required().allow(""),
+    newPassword: Joi.string().required().allow(""),
+    confirmPassword: Joi.string().required().allow("")
+})
 

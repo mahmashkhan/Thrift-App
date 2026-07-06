@@ -70,6 +70,11 @@ const UserSchema = new mongoose.Schema({
 
         brands: [String],
 
+        categories: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category"
+        }],
+
         sizes: [String],
 
         styles: [String]

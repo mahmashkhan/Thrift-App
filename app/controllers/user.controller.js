@@ -156,8 +156,6 @@ const verifyOTP = catchAsync(async (req, res, next) => {
 });
 
 
-
-
 // loginUser.js
 const loginUser = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
@@ -199,6 +197,7 @@ const logOut = catchAsync(async (req, res) => {
     res.json({ message: "Logged out successfully" });
 })
 
+
 //Forgot Password - Send OTP to email
 const forgotPassword = catchAsync(async (req, res, next) => {
     const { email } = req.body;
@@ -227,19 +226,14 @@ const forgotPassword = catchAsync(async (req, res, next) => {
     });
 
     successResponse(res, 200, {
-        message: "OTP sent to your email for password reset"
+        message: "OTP sent to your email"
     });
 });
 
 
 // Reset Password - Verify OTP and update password
-const resetPassword = catchAsync(async (req, res, next) => {
+const updateForgottenPass = catchAsync(async (req, res, next) => {
     const { email, otp, newPassword, confirmPassword } = req.body;
-
-    // Validate inputs
-    if (!email || !otp || !newPassword || !confirmPassword) {
-        return next(new AppError("Email, OTP, and new password are required", 400));
-    }
 
     // Check if passwords match
     if (newPassword !== confirmPassword) {
@@ -287,6 +281,60 @@ const resetPassword = catchAsync(async (req, res, next) => {
         message: "Password reset successfully"
     });
 });
+
+const changePassword = catchAsync(async (req, res, next) => {
+
+    const userId = req.user.id;
+
+    const {
+        currentPassword,
+        newPassword,
+        confirmPassword
+    } = req.body;
+
+    // Find user
+    const user = await User.findById(userId);
+
+    if (!user) {
+        return next(new AppError("User not found", 404));
+    }
+
+    // Check current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isMatch) {
+        return next(new AppError("Current password is incorrect", 400));
+    }
+
+    // Check new password confirmation
+    if (newPassword !== confirmPassword) {
+        return next(new AppError("Passwords do not match", 400));
+    }
+
+    // Prevent using the same password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+
+    if (isSamePassword) {
+        return next(
+            new AppError(
+                "New password must be different from the current password",
+                400
+            )
+        );
+    }
+
+    // Hash new password
+    user.password = await bcrypt.hash(newPassword, 10);
+
+    await user.save();
+
+    successResponse(res, 200, {
+        message: "Password changed successfully."
+    });
+
+});
+
+
 
 
 const createSellerProfile = catchAsync(async (req, res, next) => {
@@ -586,8 +634,9 @@ export {
     verifyOTP,
     resendOtp,
     logOut,
-    resetPassword,
+    updateForgottenPass,
     forgotPassword,
+    changePassword,
     addUserReview,
     getUserReviews,
     updateUserReview,

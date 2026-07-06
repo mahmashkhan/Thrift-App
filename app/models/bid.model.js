@@ -7,7 +7,7 @@ const BidSchema = new mongoose.Schema({
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     status: {
         type: String,
-        enum: ["pending", "approved", "rejected", "accepted"],
+        enum: ["pending", "approved", "rejected", "accepted", "withdrawn"],
         default: "pending"
     },
     priceOffered: { type: Number, required: true },
