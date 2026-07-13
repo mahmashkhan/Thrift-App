@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { loginUser, logOut, signupUser, verifyOTP, forgotPassword, resendOtp, addUserReview, getUserReviews, updateUserReview, deleteUserReview, createSellerProfile, getSellerProfile, updateSellerProfile, deleteSellerProfile, updateForgottenPass, changePassword } from "../controllers/user.controller.js";
+import { loginUser, logOut, signupUser, verifyOTP, forgotPassword, resendOtp, addUserReview, getUserReviews, updateUserReview, deleteUserReview, createSellerProfile, getSellerProfile, updateSellerProfile, deleteSellerProfile, updateForgottenPass, changePassword, googleLogin, facebookLogin, appleLogin } from "../controllers/user.controller.js";
 import { signupValidation } from "../validation/user.validation.js";
 import {
     getMyNotifications, markAsRead
@@ -30,6 +30,10 @@ router.post("/resend/otp", validate(resendOtpValidator), resendOtp);
 router.post('/verify/otp', validate(otpValidator), verifyOTP);
 router.post("/login", validate(loginValidator), loginUser);
 router.post("/logout", logOut);
+router.post("/google/login", googleLogin);
+router.post("/facebook/login", facebookLogin);
+router.post("/apple/login", appleLogin);
+
 
 // Forgot Password Routes
 router.post('/forgot-password', forgotPassword);

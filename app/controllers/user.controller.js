@@ -11,9 +11,11 @@ import { signToken } from '../config/jwt.handle.js';
 import { sanitizeResponse } from '../utils/common/sanitizeResponse.js';
 import { errorResponse, successResponse } from '../utils/common/responseObject.js';
 import Order from '../models/order.model.js';
+import { googleClient } from '../utils/googleClient.js';
+import { loginOrCreateSocialUser } from '../utils/socialAuth.js';
+import axios from 'axios';
+import { verifyAppleToken } from '../utils/apple.js';
 dotenv.config();
-
-
 
 const signupUser = catchAsync(async (req, res, next) => {
 
@@ -183,7 +185,7 @@ const loginUser = catchAsync(async (req, res, next) => {
             id: user._id,
             name: user.name,
             email: user.email,
-            role: user.role,
+            roles: user.roles,
             token
         },
 
@@ -197,6 +199,110 @@ const logOut = catchAsync(async (req, res) => {
     res.json({ message: "Logged out successfully" });
 })
 
+
+const googleLogin = catchAsync(async (req, res, next) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return next(new AppError("Google token is required", 400));
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    return loginOrCreateSocialUser({
+        provider: "google",
+        payload,
+        res,
+        next,
+    });
+});
+
+
+const facebookLogin = catchAsync(async (req, res, next) => {
+    const { accessToken } = req.body;
+    if (!accessToken) {
+        return next(new AppError("Facebook access token is required.", 400));
+    }
+
+    const { data } = await axios.get(
+        "https://graph.facebook.com/me",
+        {
+            params: {
+                fields: "id,name,email,picture",
+                access_token: accessToken,
+            },
+        }
+    );
+
+    const payload = {
+        sub: data.id,
+        email: data.email,
+        email_verified: true,
+        name: data.name,
+        picture: data.picture?.data?.url,
+    };
+
+    return loginOrCreateSocialUser({
+        provider: "facebook",
+        payload,
+        res,
+        next,
+    });
+
+});
+
+
+const appleLogin = catchAsync(async (req, res, next) => {
+    const { identityToken } = req.body;
+
+    if (!identityToken) {
+        return next(
+            new AppError("Apple identity token is required", 400)
+        );
+    }
+
+    // 1. Verify Apple JWT
+    const applePayload = await verifyAppleToken(
+        identityToken
+    );
+
+    /*
+        Apple payload example:
+
+        {
+          iss: "https://appleid.apple.com",
+          aud: "com.example.app",
+          sub: "001234.abcd...",
+          email: "user@gmail.com",
+          email_verified: "true",
+          is_private_email: "true",
+          exp: 1234567890
+        }
+
+    */
+
+    // 2. Normalize Apple payload
+    const payload = {
+        sub: applePayload.sub,
+        email: applePayload.email,
+        email_verified: applePayload.email_verified === "true" || applePayload.email_verified === true,
+        name: null,
+        picture: null,
+    };
+
+    // 3. Reuse common social login logic
+    return loginOrCreateSocialUser({
+        provider: "apple",
+        payload,
+        res,
+        next,
+    });
+});
 
 //Forgot Password - Send OTP to email
 const forgotPassword = catchAsync(async (req, res, next) => {
@@ -630,6 +736,9 @@ const deleteUserReview = catchAsync(async (req, res, next) => {
 
 export {
     signupUser,
+    googleLogin,
+    facebookLogin,
+    appleLogin,
     loginUser,
     verifyOTP,
     resendOtp,

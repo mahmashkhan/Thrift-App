@@ -11,7 +11,7 @@ const OrderSchema = new mongoose.Schema({
             bidId: { type: String, ref: "Bid", default: null }
         }
     ],
-    productsAmount: Number,
+    subtotal: Number,
     deliveryFee: Number,
     totalCustomerPays: Number,
     platformCommissionPercent: Number,

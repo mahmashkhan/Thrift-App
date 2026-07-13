@@ -1,5 +1,56 @@
 import mongoose from "mongoose";
 
+const AddressSchema = new mongoose.Schema({
+    label: {
+        type: String,
+        enum: ["home", "work", "other"],
+        default: "home"
+    },
+
+    fullName: {
+        type: String,
+        required: true
+    },
+
+    phone: {
+        type: String
+    },
+
+    addressLine1: {
+        type: String,
+        required: true
+    },
+
+    addressLine2: String,
+
+    city: {
+        type: String,
+        required: true
+    },
+
+    state: {
+        type: String,
+        required: true
+    },
+
+    zipCode: {
+        type: String,
+        required: true
+    },
+
+    country: {
+        type: String,
+        required: true
+    },
+
+    isDefault: {
+        type: Boolean,
+        default: false
+    }
+
+}, { _id: true });
+
+
 const UserSchema = new mongoose.Schema({
 
     name: {
@@ -90,6 +141,17 @@ const UserSchema = new mongoose.Schema({
         ref: "Product"
     }],
 
+    addresses: {
+        type: [AddressSchema],
+        // validate: {
+        //     validator: function (addresses) {
+        //         return addresses.length <= 2;
+        //     },
+        //     message: "A user can have at most 2 addresses."
+        // },
+        default: []
+    },
+
     notifications: [
         {
             notification: {
@@ -109,6 +171,7 @@ const UserSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
 
 
 const SellerProfileSchema = new mongoose.Schema({

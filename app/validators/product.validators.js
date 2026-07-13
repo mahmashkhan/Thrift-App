@@ -15,7 +15,7 @@ export const productValidator = Joi.object({
         .required(),
     commissionRate: Joi.number().required(),
     ownerId: Joi.string().required(),
-    imageUrls: Joi.array().required(),
+    imageUrls: Joi.array().max(5).required(),
     stock: Joi.number().required(),
     tags: Joi.array().optional().allow(""),
     salePrice: Joi.number().required(),
