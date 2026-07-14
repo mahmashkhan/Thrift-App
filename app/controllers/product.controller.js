@@ -70,6 +70,9 @@ const getSingleProduct = catchAsync(async (req, res, next) => {
 
 const searchProdByFilter = catchAsync(async (req, res, next) => {
     const {
+        keyword,
+        categoryId,
+        categoryName,
         brand,
         color,
         size,
@@ -79,57 +82,79 @@ const searchProdByFilter = catchAsync(async (req, res, next) => {
         maxPrice,
         status,
         sellType,
-        keyword,
         sortBy,
         page = 1,
         limit = 10,
     } = req.query;
 
-    const filters = {};
-
-    if (brand) filters.brand = { $in: brand.split(",") };
-    if (color) filters.color = { $in: color.split(",") };
-    if (size) filters.size = { $in: size.split(",") };
-    if (condition) filters.condition = { $in: condition.split(",") };
-    if (location) filters.location = { $in: location.split(",") };
-    if (status) filters.status = status;
-    if (sellType) filters.sellType = sellType;
-
-    if (minPrice || maxPrice) {
-        filters.salePrice = {};
-        if (minPrice) filters.salePrice.$gte = Number(minPrice);
-        if (maxPrice) filters.salePrice.$lte = Number(maxPrice);
-    }
+    const filters = { status: "approved" };
 
     if (keyword) {
         filters.$or = [
             { title: { $regex: keyword, $options: "i" } },
             { description: { $regex: keyword, $options: "i" } },
             { brand: { $regex: keyword, $options: "i" } },
+            { details: { $regex: keyword, $options: "i" } },
+            { color: { $regex: keyword, $options: "i" } },
+            { size: { $regex: keyword, $options: "i" } },
+            { condition: { $regex: keyword, $options: "i" } },
+            { location: { $regex: keyword, $options: "i" } },
         ];
     }
 
-    let sortOption = { createdAt: -1 };
-    switch (sortBy) {
-        case "newest":
-            sortOption = { createdAt: -1 };
-            break;
-        case "priceHighToLow":
-            sortOption = { salePrice: -1 };
-            break;
-        case "priceLowToHigh":
-            sortOption = { salePrice: 1 };
-            break;
-        case "relevance":
-        default:
-            sortOption = { averageRating: -1, totalReviews: -1, createdAt: -1 };
-            break;
+    // filter by category ID directly
+    if (categoryId) {
+        filters.categoryId = categoryId;
+    } else if (categoryName) {
+        // filter by category name — look up the category first
+        const category = await Category.findOne({
+            name: { $regex: categoryName, $options: "i" },
+            isActive: true,
+        });
+        if (!category) {
+            return res.status(200).json({
+                responseCode: "00",
+                status: "success",
+                page: Number(page),
+                limit: Number(limit),
+                total: 0,
+                totalPages: 0,
+                data: [],
+            });
+        }
+        filters.categoryId = category._id;
     }
 
-    const skip = (page - 1) * limit;
+    // single-value or comma-separated filters
+    if (brand) filters.brand = { $in: brand.split(",").map(v => v.trim()) };
+    if (color) filters.color = { $in: color.split(",").map(v => v.trim()) };
+    if (size) filters.size = { $in: size.split(",").map(v => v.trim()) };
+    if (condition) filters.condition = { $in: condition.split(",").map(v => v.trim()) };
+    if (location) filters.location = { $in: location.split(",").map(v => v.trim()) };
+    if (sellType) filters.sellType = sellType;
+
+    // admin can override status filter
+    if (status) filters.status = status;
+
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+    if (!isNaN(min) && minPrice !== undefined && minPrice !== "") filters["salePrice"] = { ...filters["salePrice"], $gte: min };
+    if (!isNaN(max) && maxPrice !== undefined && maxPrice !== "") filters["salePrice"] = { ...filters["salePrice"], $lte: max };
+
+    const sortMap = {
+        newest: { createdAt: -1 },
+        priceHighToLow: { salePrice: -1 },
+        priceLowToHigh: { salePrice: 1 },
+        topRated: { averageRating: -1, totalReviews: -1 },
+    };
+    const sortOption = sortMap[sortBy] ?? { createdAt: -1 };
+
+    const skip = (Number(page) - 1) * Number(limit);
 
     const [products, total] = await Promise.all([
         Product.find(filters)
+            .populate("categoryId", "name parentId isActive")
+            .populate("ownerId", "name image")
             .sort(sortOption)
             .skip(skip)
             .limit(Number(limit)),
@@ -142,7 +167,7 @@ const searchProdByFilter = catchAsync(async (req, res, next) => {
         page: Number(page),
         limit: Number(limit),
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / Number(limit)),
         data: products,
     });
 });
@@ -239,7 +264,7 @@ const deleteProduct = catchAsync(async (req, res, next) => {
     const deleted = await Product.findByIdAndDelete(req.params.id);
 
     if (!deleted) {
-        return next(new AppError('Prodcut Not found', 404))
+        return next(new AppError('Product Not found', 404))
     }
 
     res.status(200).json({

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus, addReview, getProductReviews, updateReview, deleteReview, getRootCategories, getChildCategories, getCategory, updateCategory, getProductsByCategory } from "../controllers/product.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
-import { allowedUsers } from "../middleware/authorizationMiddleware.js";
+import { allowedUsers, optionalAuth } from "../middleware/authorizationMiddleware.js";
 import { validate } from "../middleware/validate.params.js";
 import { productValidator, productUpdateValidator } from "../validators/product.validators.js";
 import { addProductReviewValidator, updateProductReviewValidator } from "../validators/review.validators.js";
@@ -12,7 +12,7 @@ const router = Router();
 
 router.post("/create", validate(productValidator), allowedUsers("admin", "seller"), createProduct);
 router.get("/get", allowedUsers("admin", "seller"), getProductByStatus);
-router.get("/search", allowedUsers(), searchProdByFilter);
+router.get("/search", optionalAuth, searchProdByFilter);
 router.get("/:id", allowedUsers(), getSingleProduct);
 router.get("/owner/:id", allowedUsers("admin", "seller", "influencer"), getProductsByOwner);
 router.get("/category/:categoryId", allowedUsers(), getProductsByCategory);
