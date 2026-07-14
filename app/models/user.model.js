@@ -3,18 +3,10 @@ import mongoose from "mongoose";
 const AddressSchema = new mongoose.Schema({
     label: {
         type: String,
-        enum: ["home", "work", "other"],
-        default: "home"
+        enum: ["Home", "Work", "Other"],
+        default: "Home"
     },
 
-    fullName: {
-        type: String,
-        required: true
-    },
-
-    phone: {
-        type: String
-    },
 
     addressLine1: {
         type: String,

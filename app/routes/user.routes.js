@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { loginUser, logOut, signupUser, verifyOTP, forgotPassword, resendOtp, addUserReview, getUserReviews, updateUserReview, deleteUserReview, createSellerProfile, getSellerProfile, updateSellerProfile, deleteSellerProfile, updateForgottenPass, changePassword, googleLogin, facebookLogin, appleLogin } from "../controllers/user.controller.js";
+import { loginUser, logOut, signupUser, verifyOTP, forgotPassword, resendOtp, addUserReview, getUserReviews, updateUserReview, deleteUserReview, createSellerProfile, getSellerProfile, updateSellerProfile, deleteSellerProfile, updateForgottenPass, changePassword, googleLogin, facebookLogin, appleLogin, addNewAddress, getUserAddresses, updateAddress, deleteAddress, setDefaultAddress } from "../controllers/user.controller.js";
 import { signupValidation } from "../validation/user.validation.js";
 import {
     getMyNotifications, markAsRead
 } from "../controllers/notification.controller.js";
 import { getProfile, editProfile, deleteProfile } from "../controllers/profile.controller.js";
 import { validate } from "../middleware/validate.params.js";
-import { loginValidator, signupValidator, otpValidator, editProfileValidator, sellerProfileValidator, resendOtpValidator, resetForgottenPassValidator, changePasswordValidator } from "../validators/auth.validators.js"
+import { loginValidator, signupValidator, otpValidator, editProfileValidator, sellerProfileValidator, resendOtpValidator, resetForgottenPassValidator, changePasswordValidator, addNewAddressValidator } from "../validators/auth.validators.js"
 import { allowedadminOrOwner } from "../middleware/authorizationMiddleware.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { getMyFavourites, toggleFavourite } from "../controllers/favourites.controller.js";
@@ -39,6 +39,12 @@ router.post("/apple/login", appleLogin);
 router.post('/forgot-password', forgotPassword);
 router.post('/verify/forget/password', validate(resetForgottenPassValidator), updateForgottenPass);
 router.post('/password/change', allowedUsers(), validate(changePasswordValidator), changePassword);
+
+router.post('/addresses', allowedUsers(), validate(addNewAddressValidator), addNewAddress);
+router.get('/addresses', allowedUsers(), getUserAddresses);
+router.patch('/addresses/:addressId', allowedUsers(), updateAddress);
+router.delete('/addresses/:addressId', allowedUsers(), deleteAddress);
+router.patch('/addresses/default/:addressId', allowedUsers(), setDefaultAddress);
 
 
 // Seller Profile

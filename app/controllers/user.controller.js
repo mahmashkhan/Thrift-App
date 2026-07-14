@@ -441,6 +441,220 @@ const changePassword = catchAsync(async (req, res, next) => {
 });
 
 
+const addNewAddress = catchAsync(async (req, res, next) => {
+
+    const { label, addressLine1, addressLine2, city, state, zipCode, country } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+        return next(new AppError("User not found", 404));
+    }
+
+    if (user.addresses.length >= 2) {
+        return next(
+            new AppError(
+                "You can only save up to 2 addresses.",
+                400
+            )
+        );
+    }
+
+    const alreadyExists = user.addresses.some(address =>
+        address.label.toLowerCase() === label.toLowerCase()
+    );
+
+    if (alreadyExists) {
+        return next(
+            new AppError(
+                `Address with label '${label}' already exists.`,
+                400
+            )
+        );
+    }
+
+    user.addresses.push({
+        label,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        zipCode,
+        country,
+        isDefault: user.addresses.length === 0
+    });
+
+    await user.save();
+
+    res.status(201).json({
+        responseCode: "00",
+        status: "success",
+        data: user.addresses
+    });
+
+});
+
+
+// Get User Addresses
+const getUserAddresses = catchAsync(async (req, res, next) => {
+
+    const user = await User.findById(req.user.id)
+        .select("addresses");
+
+    if (!user) {
+        errorResponse(res, 404, {
+            message: "User not found"
+        });
+        return;
+    }
+
+    res.status(200).json({
+        status: "success",
+        responseCode: "00",
+        data: user.addresses
+    });
+
+});
+
+const updateAddress = catchAsync(async (req, res, next) => {
+
+    const { addressId } = req.params;
+
+    const {
+        label,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        zipCode,
+        country
+    } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+        errorResponse(res, 404, {
+            message: "User not found"
+        });
+        return;
+    }
+
+    const address = user.addresses.id(addressId);
+
+    if (!address) {
+        errorResponse(res, 404, {
+            message: "Address not found"
+        });
+        return;
+    }
+
+    // Prevent duplicate labels (except current address)
+    if (label) {
+        const duplicateLabel = user.addresses.some(
+            addr =>
+                addr._id.toString() !== addressId &&
+                addr.label.toLowerCase() === label.toLowerCase()
+        );
+
+        if (duplicateLabel) {
+            errorResponse(res, 400, {
+                message: `Address with label '${label}' already exists`
+            });
+            return;
+        }
+
+        address.label = label;
+    }
+
+    if (addressLine1 !== undefined) address.addressLine1 = addressLine1;
+    if (addressLine2 !== undefined) address.addressLine2 = addressLine2;
+    if (city !== undefined) address.city = city;
+    if (state !== undefined) address.state = state;
+    if (zipCode !== undefined) address.zipCode = zipCode;
+    if (country !== undefined) address.country = country;
+
+    await user.save();
+
+    res.status(200).json({
+        status: "success",
+        responseCode: "00",
+        data: address
+    });
+
+});
+
+const deleteAddress = catchAsync(async (req, res, next) => {
+    const { addressId } = req.params;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+        errorResponse(res, 404, {
+            message: "User not found"
+        });
+        return;
+    }
+
+    const address = user.addresses.id(addressId);
+
+    if (!address) {
+        errorResponse(res, 404, {
+            message: "Address not found"
+        });
+        return;
+    }
+
+    const wasDefault = address.isDefault;
+
+    address.deleteOne();
+
+    // If default address was deleted,
+    // make the first remaining address default.
+    if (wasDefault && user.addresses.length > 0) {
+        user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+        status: "success",
+        responseCode: "00",
+        message: "Address deleted successfully."
+    });
+
+});
+
+const setDefaultAddress = catchAsync(async (req, res, next) => {
+    const { addressId } = req.params;
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        errorResponse(res, 404, {
+            message: "User not found"
+        });
+        return;
+    }
+
+    const address = user.addresses.id(addressId);
+
+    if (!address) {
+        errorResponse(res, 404, {
+            message: "Address not found"
+        });
+        return;
+    }
+
+    user.addresses.forEach(addr => {
+        addr.isDefault = addr._id.toString() === addressId;
+    });
+
+    await user.save();
+
+    res.status(200).json({
+        status: "success",
+        responseCode: "00",
+        data: user.addresses
+    });
+
+});
 
 
 const createSellerProfile = catchAsync(async (req, res, next) => {
@@ -746,6 +960,11 @@ export {
     updateForgottenPass,
     forgotPassword,
     changePassword,
+    addNewAddress,
+    getUserAddresses,
+    updateAddress,
+    deleteAddress,
+    setDefaultAddress,
     addUserReview,
     getUserReviews,
     updateUserReview,

@@ -70,3 +70,44 @@ export const changePasswordValidator = Joi.object({
     confirmPassword: Joi.string().required().allow("")
 })
 
+
+export const addNewAddressValidator = Joi.object({
+
+    label: Joi.string()
+        .trim()
+        .valid("Home", "Work", "Other")
+        .required(),
+
+    addressLine1: Joi.string()
+        .trim()
+        .max(255)
+        .required(),
+
+    addressLine2: Joi.string()
+        .trim()
+        .max(255)
+        .allow("")
+        .optional(),
+
+    city: Joi.string()
+        .trim()
+        .max(100)
+        .required(),
+
+    state: Joi.string()
+        .trim()
+        .max(100)
+        .required(),
+
+    zipCode: Joi.string()
+        .trim()
+        .max(20)
+        .required(),
+
+    country: Joi.string()
+        .trim()
+        .max(100)
+        .required()
+
+});
+
