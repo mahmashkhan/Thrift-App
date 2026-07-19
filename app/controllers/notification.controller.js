@@ -1,9 +1,11 @@
 // controllers/notification.controller.js
-import {User} from '../models/user.model.js';
+import { User } from '../models/user.model.js';
 import Notification from '../models/notification.model.js';
 import { successResponse, errorResponse } from '../utils/common/responseObject.js';
 import catchAsync from '../utils/catchAsync.js';
 import { sanitizeResponse } from '../utils/common/sanitizeResponse.js';
+import { io } from '../server.js';
+import { emitNotification } from '../utils/socketNotifications.js';
 
 // controllers/notification.controller.js
 
@@ -52,6 +54,22 @@ const sendNotificationToAll = catchAsync(async (req, res) => {
         }
     );
 
+    const users = await User.find({
+        roles: { $in: ["buyer", "seller"] },
+        status: "active"
+    }).select("_id");
+
+    emitNotification(
+        users.map(user => user._id),
+        {
+            _id: notification._id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type,
+            createdAt: notification.createdAt
+        }
+    );
+
 
     res.status(200).json({
         "status": "success",
@@ -92,6 +110,18 @@ const sendNotificationToOne = catchAsync(async (req, res) => {
             }
         }
     );
+
+    const populatedNotification = await Notification.findById(notification?._id);
+
+    emitNotification(userId, {
+        _id: notification._id,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        createdAt: notification.createdAt
+    });
+
+
 
     res.status(200).json({
         "status": "success",

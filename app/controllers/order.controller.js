@@ -12,9 +12,11 @@ import { successResponse } from "../utils/common/responseObject.js";
 
 
 const createBid = catchAsync(async (req, res, next) => {
-    const { productId, priceOffered, itemQuantity, managedById } = req.body;
+    const { productId, priceOffered, itemQuantity } = req.body;
 
     const product = await Product.findById(productId);
+
+    console.log("PRODUCT MANAGED BY ID BE LIKE", product)
 
     if (!product) {
         return next(new AppError('Product Not found', 404))
@@ -28,7 +30,7 @@ const createBid = catchAsync(async (req, res, next) => {
         productId,
         buyerId: req?.user?.id,
         sellerId: product.ownerId,
-        assignedTo: managedById,
+        assignedTo: product.managedById,
         status: "pending",
         priceOffered,
         itemQuantity

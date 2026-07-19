@@ -4,7 +4,6 @@ export const createBidValidator = Joi.object({
     productId:Joi.string().required(),
     priceOffered:Joi.number().required(),
     itemQuantity:Joi.number().required(),
-    managedById:Joi.string().required(),
 })
 
 
