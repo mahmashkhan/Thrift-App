@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stripe Test Checkout</title>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto;">
+  
+  <h2>Fake Store - Payment Test</h2>
+  <form id="payment-form">
+    <!-- Stripe ka Card Form yahan aayega -->
+    <div id="payment-element"></div>
+    <button id="submit" style="margin-top: 20px; padding: 10px 20px; background: blue; color: white; border: none;">Pay Now</button>
+  </form>
+  <p id="message" style="color: red;"></p>
+
+  <script>
+    // 1. Yahan apni Publishable Key (pk_test_...) daalein
+    const stripe = Stripe('');
+
+    // 2. Yahan Postman se copy kiya hua client_secret daalein
+    const clientSecret = '';
+
+    // Stripe Elements initialize karein
+    const elements = stripe.elements({ clientSecret });
+    const paymentElement = elements.create('payment');
+    paymentElement.mount('#payment-element');
+
+    // Pay button dabane par kya hoga
+    const form = document.getElementById('payment-form');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      document.getElementById('submit').innerText = 'Processing...';
+
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: 'https://example.com/success', // Payment ke baad yahan jayega
+        },
+      });
+
+      if (error) {
+        document.getElementById('message').innerText = error.message;
+        document.getElementById('submit').innerText = 'Pay Now';
+      }
+    });
+  </script>
+</body>
+</html>

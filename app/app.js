@@ -16,12 +16,26 @@ import chatRoutes from "./routes/chat.routes.js";
 import favouriteRoutes from "./routes/favourites.routes.js";
 import notificationRoutes from "./routes/notifications.routes.js";
 import fileRoutes from "./routes/file.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 
+import {
+    stripeWebhook
+} from "./controllers/payment.controller.js";
 const app = express();
-
+// Stripe webhook MUST come before express.json()
+app.post(
+    "/api/v1/payment/webhook",
+    express.raw({ type: "application/json" }),
+    stripeWebhook
+);
 app.use(express.json());
 app.use(cors());
 app.use(passport.initialize());
+// Payment routes
+app.use(
+    "/api/v1/payment",
+    paymentRoutes
+);
 
 
 app.use(googleRoutes);
