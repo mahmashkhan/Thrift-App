@@ -2,6 +2,7 @@ import express from 'express';
 import userRoutes from './routes/user.routes.js';
 import productRoutes from './routes/product.routes.js';
 import orderRoutes from "./routes/order.routes.js"
+import webhookRoutes from "./routes/webhook.routes.js"
 import googleRoutes from './routes/google.routes.js';
 import './config/facebook.strategy.js';
 import './config/apple.strategy.js';
@@ -23,10 +24,16 @@ import {
 } from "./controllers/payment.controller.js";
 
 const app = express();
+
+//Webhook should not be parsed by express.json()
+app.use("/api/v1/webhooks", webhookRoutes);
 // Stripe webhook MUST come before express.json()
 app.post("/api/v1/payment/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
 app.use(passport.initialize());
 
 

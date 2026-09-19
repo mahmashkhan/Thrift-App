@@ -22,10 +22,10 @@ const CartSchema = new mongoose.Schema({
                 default: null
             },
 
-            price: {
-                type: Number,
-                required: true
-            },
+            // price: {
+            //     type: Number,
+            //     required: true
+            // },
 
             quantity: {
                 type: Number,

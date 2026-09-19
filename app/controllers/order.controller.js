@@ -9,6 +9,7 @@ import Order from "../models/order.model.js";
 import { io } from "../server.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 import { successResponse } from "../utils/common/responseObject.js";
+import { createPaymentService, prepareOrderService } from "../services/order.service.js";
 
 
 const createBid = catchAsync(async (req, res, next) => {
@@ -248,6 +249,34 @@ const ViewCart = catchAsync(async (req, res, next) => {
         responseCode: "00",
         status: "success",
         data: sanitizeResponse(cart)
+    });
+});
+
+export const prepareOrder = catchAsync(async (req, res, next) => {
+    const buyerId = req.user.id;
+
+    const invoice = await prepareOrderService(buyerId);
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: invoice
+    });
+});
+
+export const createPayment = catchAsync(async (req, res, next) => {
+
+    const { amount, currency } = req.body;
+
+    const payment = await createPaymentService({
+        amount,
+        currency
+    });
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        data: payment
     });
 });
 
