@@ -9,7 +9,8 @@ import Order from "../models/order.model.js";
 import { io } from "../server.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 import { successResponse } from "../utils/common/responseObject.js";
-import { createPaymentService, prepareOrderService } from "../services/order.service.js";
+import { createOrderService, prepareOrderService } from "../services/order.service.js";
+import mongoose from "mongoose";
 
 
 const createBid = catchAsync(async (req, res, next) => {
@@ -239,16 +240,63 @@ const addToCart = catchAsync(async (req, res, next) => {
 
 
 const ViewCart = catchAsync(async (req, res, next) => {
+    console.log("View Cart controller")
     const { buyerId } = req.params;
 
-    const cart = await Cart.findOne({ buyerId: buyerId })
+    const cart = await Cart.findOne({ buyerId })
+        .populate({
+            path: "items.productId",
+            select: "title ownerId price imageUrls",
+            populate: {
+                path: "ownerId",
+                select: "name"
+            }
+        })
+        .populate({
+            path: "items.bidId",
+            select: "priceOffered"
+        })
+        .lean();
 
-    // console.log("Cart Be Like", cart)
+
+    const items = cart.items.map(item => {
+        const product = item.productId;
+        console.log("Product looks like", product);
+        const bid = item.bidId;
+
+        const productPrice = bid
+            ? bid.priceOffered
+            : product.price;
+
+        return {
+            productId: product._id,
+            productName: product.title,
+            productImages: product.imageUrls,
+
+            sellerId: product.ownerId._id,
+            sellerName: product.ownerId.name,
+
+            bidId: bid?._id ?? null,
+
+            productPrice,
+            quantity: item.quantity,
+            subtotal: productPrice * item.quantity
+        };
+    });
+
+    const total = items.reduce(
+        (sum, item) => sum + item.subtotal,
+        0
+    );
+
 
     res.status(200).json({
         responseCode: "00",
         status: "success",
-        data: sanitizeResponse(cart)
+        data: {
+            items: sanitizeResponse(items),
+            total
+        }
     });
 });
 
@@ -264,126 +312,33 @@ export const prepareOrder = catchAsync(async (req, res, next) => {
     });
 });
 
-export const createPayment = catchAsync(async (req, res, next) => {
+// export const createPayment = catchAsync(async (req, res, next) => {
 
-    const { amount, currency } = req.body;
+//     const { amount, currency } = req.body;
 
-    const payment = await createPaymentService({
-        amount,
-        currency
-    });
+//     const payment = await createPaymentService({
+//         amount,
+//         currency
+//     });
+
+//     res.status(200).json({
+//         responseCode: "00",
+//         status: "success",
+//         data: payment
+//     });
+// });
+
+const checkOut = catchAsync(async (req, res, next) => {
+    const buyerId = req.user.id;
+
+    const result = await createOrderService(buyerId);
 
     res.status(200).json({
         responseCode: "00",
         status: "success",
-        data: payment
+        data: result
     });
 });
-
-const checkOut = catchAsync(async (req, res, next) => {
-
-    const buyerId = req.user.id;
-
-    const cart = await Cart.findOne({ buyerId })
-        .populate("items.productId");
-
-    if (!cart || !cart.items.length) {
-        return next(new AppError("Cart is empty", 404));
-    }
-
-    let subtotal = 0;
-
-    let totalPlatformCommission = 0;
-
-    let totalSellerAmount = 0;
-
-    let totalInfluencerAmount = 0;
-
-    const orderItems = [];
-
-    for (const item of cart.items) {
-
-        const product = item.productId;
-
-        if (!product) {
-            return next(
-                new AppError("Product not found", 404)
-            );
-        }
-
-        // Stock validation
-        if (product.stock < item.quantity) {
-            return next(
-                new AppError(
-                    `Insufficient stock for ${product.title}`,
-                    400
-                )
-            );
-        }
-
-        const settlement =
-            orderSettlement({
-                product,
-                quantity: item.quantity
-            });
-
-        subtotal += settlement.productAmount;
-
-        totalPlatformCommission +=
-            settlement.platformCommission;
-
-        totalSellerAmount +=
-            settlement.sellerAmount;
-
-        totalInfluencerAmount +=
-            settlement.influencerAmount;
-
-        orderItems.push({
-            productId: product._id,
-
-            sellerId:
-                settlement.productType === "influencer"
-                    ? null
-                    : product.ownerId,
-
-            managedBy: product.managedBy,
-
-            managedById: product.managedById,
-
-            sellType: product.sellType,
-
-            quantity: item.quantity,
-
-            unitPrice: product.price,
-
-            bidId: item.bidId,
-
-            settlement
-        });
-    }
-
-    const summary = {
-        subtotal,
-
-        totalPlatformCommission,
-
-        totalSellerAmount,
-
-        totalInfluencerAmount,
-
-        totalPayable: subtotal
-    };
-
-    return res.status(200).json({
-        responseCode: "00",
-        status: "success",
-        data: {
-            items: orderItems,
-            summary
-        }
-    });
-});
-
 
 const getBuyerOrders = catchAsync(async (req, res, next) => {
     console.log("Buyer Orders be like", req.params.buyerId)

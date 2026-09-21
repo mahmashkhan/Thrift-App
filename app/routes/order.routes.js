@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {
-     acceptBid, addToCart, checkOut, createBid, createPayment, getBuyerOrders, getOwnerOrders, getProductBids, getProductOrders,
+     acceptBid, addToCart, checkOut, createBid, getBuyerOrders, getOwnerOrders, getProductBids, getProductOrders,
      prepareOrder,
      rejectBid, ViewCart,
      withdrawBid
@@ -22,7 +22,7 @@ router.get('/cart/get/:buyerId', allowedUsers(), ViewCart);
 
 
 router.post("/prepare/invoice", allowedUsers(), prepareOrder);
-router.post("/payment", allowedUsers(), createPayment);
+// router.post("/payment", allowedUsers(), createPayment);
 
 router.post('/checkout', allowedUsers(), checkOut);
 router.get('/get/buyer/:buyerId', allowedUsers("admin", "buyer"), getBuyerOrders);

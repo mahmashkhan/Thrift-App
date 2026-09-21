@@ -40,70 +40,106 @@ const OrderSchema = new mongoose.Schema(
             required: true
         },
 
-        items: [
+        shipments: [
             {
-                productId: {
-                    type: String,
-                    ref: "Product",
-                    required: true
-                },
-
-                productOwner: {
-                    type: String,
+                sellerId: {
+                    type: mongoose.Schema.Types.ObjectId,
                     ref: "User",
                     required: true
                 },
 
-                quantity: {
+                sellerName: {
+                    type: String,
+                    required: true
+                },
+
+                items: [
+                    {
+                        productId: {
+                            type: mongoose.Schema.Types.ObjectId,
+                            ref: "Product",
+                            required: true
+                        },
+
+                        bidId: {
+                            type: mongoose.Schema.Types.ObjectId,
+                            ref: "Bid",
+                            default: null
+                        },
+
+                        quantity: {
+                            type: Number,
+                            required: true
+                        },
+
+                        price: {
+                            type: Number,
+                            required: true
+                        },
+
+                        settlement: {
+                            type: mongoose.Schema.Types.Mixed,
+                            default: null
+                        },
+
+                        sellerStripeAccountId: {
+                            type: String,
+                            default: null
+                        },
+
+                        stripeTransferId: {
+                            type: String,
+                            default: null
+                        },
+
+                        settlementStatus: {
+                            type: String,
+                            enum: [
+                                "PENDING",
+                                "READY",
+                                "ON_HOLD",
+                                "SETTLED",
+                                "FAILED"
+                            ],
+                            default: "PENDING"
+                        }
+                    }
+                ],
+
+                subtotal: {
                     type: Number,
                     required: true
                 },
 
-                price: {
-                    type: Number,
-                    required: true
-                },
+                shipping: {
+                    pickupLocation: {
+                        type: mongoose.Schema.Types.Mixed,
+                        default: null
+                    },
 
-                bidId: {
-                    type: String,
-                    ref: "Bid",
-                    default: null
-                },
+                    deliveryLocation: {
+                        type: mongoose.Schema.Types.Mixed,
+                        default: null
+                    },
 
-                // Store the settlement calculated during checkout
-                settlement: {
-                    type: mongoose.Schema.Types.Mixed,
-                    default: null
-                },
+                    deliveryFee: {
+                        type: Number,
+                        default: 0
+                    },
 
-                // Stripe connected account belonging to this seller
-                sellerStripeAccountId: {
-                    type: String,
-                    default: null
-                },
+                    deliveryMethod: {
+                        type: String,
+                        default: null
+                    },
 
-                // Stripe transfer created when seller is paid
-                stripeTransferId: {
-                    type: String,
-                    default: null
-                },
-
-                // Individual settlement state
-                settlementStatus: {
-                    type: String,
-                    enum: [
-                        "PENDING",
-                        "READY",
-                        "ON_HOLD",
-                        "SETTLED",
-                        "FAILED"
-                    ],
-                    default: "PENDING"
+                    estimatedDelivery: {
+                        type: String,
+                        default: null
+                    }
                 }
             }
         ],
 
-        // Existing order amounts
         subtotal: {
             type: Number,
             required: true
@@ -119,12 +155,12 @@ const OrderSchema = new mongoose.Schema(
             required: true
         },
 
-        platformCommissionPercent: {
+        platformFeesPercent: {
             type: Number,
             default: 20
         },
 
-        platformCommissionAmount: {
+        platformFeesAmount: {
             type: Number,
             default: 0
         },
@@ -155,10 +191,6 @@ const OrderSchema = new mongoose.Schema(
             default: false
         },
 
-        // -------------------------
-        // Stripe
-        // -------------------------
-
         stripePaymentIntentId: {
             type: String,
             default: null
@@ -176,10 +208,6 @@ const OrderSchema = new mongoose.Schema(
             default: "PENDING"
         },
 
-        // -------------------------
-        // Delivery
-        // -------------------------
-
         deliveryStatus: {
             type: String,
             enum: [
@@ -195,10 +223,6 @@ const OrderSchema = new mongoose.Schema(
             default: "PENDING"
         },
 
-        // -------------------------
-        // Buyer confirmation
-        // -------------------------
-
         buyerConfirmationStatus: {
             type: String,
             enum: [
@@ -208,10 +232,6 @@ const OrderSchema = new mongoose.Schema(
             ],
             default: "PENDING"
         },
-
-        // -------------------------
-        // Overall seller settlement
-        // -------------------------
 
         settlementStatus: {
             type: String,
@@ -224,10 +244,6 @@ const OrderSchema = new mongoose.Schema(
             ],
             default: "PENDING"
         },
-
-        // -------------------------
-        // Existing order status
-        // -------------------------
 
         status: {
             type: String,

@@ -17,18 +17,23 @@ import chatRoutes from "./routes/chat.routes.js";
 import favouriteRoutes from "./routes/favourites.routes.js";
 import notificationRoutes from "./routes/notifications.routes.js";
 import fileRoutes from "./routes/file.routes.js";
-import filterRoutes from "./routes/filterOPtion.routes.js" 
-import paymentRoutes from "./routes/payment.routes.js";
-import {
-    stripeWebhook
-} from "./controllers/payment.controller.js";
+import filterRoutes from "./routes/filterOPtion.routes.js"
+// import paymentRoutes from "./routes/payment.routes.js";
+// import {
+//     stripeWebhook
+// } from "./controllers/payment.controller.js";
 
 const app = express();
 
 //Webhook should not be parsed by express.json()
 app.use("/api/v1/webhooks", webhookRoutes);
+
+
 // Stripe webhook MUST come before express.json()
-app.post("/api/v1/payment/webhook", express.raw({ type: "application/json" }), stripeWebhook);
+// app.post("/api/v1/payment/webhook", express.raw({ type: "application/json" }), stripeWebhook);
+
+
+
 app.use(express.json());
 app.use(cors({
     origin: "http://localhost:5173",
@@ -40,10 +45,9 @@ app.use(passport.initialize());
 app.use(googleRoutes);
 app.use(facebookRoutes);
 app.use(appleRoutes);
-app.use(
-    "/api/v1/payment",
-    paymentRoutes
-);
+// app.use("/api/v1/payment", paymentRoutes);
+
+
 app.get("/health", (req, res) => {
     res.status(200).json({
         success: true,

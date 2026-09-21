@@ -1,23 +1,30 @@
-import stripe from "../../config/stripe.js";
+import stripe from "../config/stripe.js";
 
-const createPaymentIntent = async ({
-    amount,
-    orderId,
-    buyerId
-}) => {
+
+const createPaymentIntent = async ({ amount, currency = "aed", buyerId }) => {
+
+    if (!amount || amount <= 0) {
+        throw new AppError(
+            "Valid amount is required",
+            400
+        );
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100),
-        currency: "aed",
+        currency: currency.toLowerCase(),
 
         metadata: {
-            orderId: orderId.toString(),
-            buyerId: buyerId.toString()
+            userId: buyerId.toString()
         }
     });
 
-    return paymentIntent;
+    return {
+        paymentIntentId: paymentIntent.id,
+        clientSecret: paymentIntent.client_secret
+    };
 };
+
 
 
 const createSellerTransfer = async ({
