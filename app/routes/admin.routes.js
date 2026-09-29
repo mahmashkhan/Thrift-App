@@ -28,7 +28,8 @@ import {
     // statusValidator,
     policyValidator,
     updateUserValidator,
-    adminCreateUserValidator
+    adminCreateUserValidator,
+    courierConfigUpdateValidator
 } from "../validators/admin.validators.js";
 import {
     getPreferenceOptions,
@@ -40,6 +41,7 @@ import {
 import {
     getMyNotifications, sendNotificationToAll, sendNotificationToOne
 } from "../controllers/notification.controller.js";
+import { getCourierConfig, retryCourierShipments, updateCourierConfig } from "../controllers/courier.controller.js";
 const router = Router();
 
 //Influencer Management 
@@ -67,7 +69,10 @@ router.put("/options/update/:id", allowedUsers("admin"), updatePreferenceOption)
 router.delete("/options/delete/:id", allowedUsers("admin"), deletePreferenceOption);
 
 
-
+// Manage Courier Config Routes
+router.get("/courier-config", allowedUsers("admin"), getCourierConfig)
+router.patch("/courier-config", validate(courierConfigUpdateValidator), allowedUsers("admin"), updateCourierConfig)
+router.post("/:orderId/retry-courier", allowedUsers("admin"), retryCourierShipments);
 
 
 

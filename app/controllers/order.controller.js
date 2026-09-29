@@ -6,11 +6,12 @@ import { User } from '../models/user.model.js';
 import catchAsync from "../utils/catchAsync.js";
 import { createCartItem } from "../utils/createCartItem.js";
 import Order from "../models/order.model.js";
-import { io } from "../server.js";
+import { getIO } from "../socket/index.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 import { successResponse } from "../utils/common/responseObject.js";
-import { createOrderService, prepareOrderService } from "../services/order.service.js";
+import { createOrderService, getBuyerOrderStatusService, getProductPrice, prepareOrderService } from "../services/order.service.js";
 import mongoose from "mongoose";
+import { createCourierShipmentsForOrder } from "../services/courier.service.js";
 
 
 const createBid = catchAsync(async (req, res, next) => {
@@ -201,7 +202,7 @@ const addToCart = catchAsync(async (req, res, next) => {
                 {
                     productId,
                     bidId: null,
-                    price: product.price,
+                    price: getProductPrice(product),
                     quantity: 1
                 }
             ]
@@ -223,7 +224,7 @@ const addToCart = catchAsync(async (req, res, next) => {
             cart.items.push({
                 productId,
                 bidId: null,
-                price: product.price,
+                price: getProductPrice(product),
                 quantity: 1
             });
         }
@@ -240,13 +241,12 @@ const addToCart = catchAsync(async (req, res, next) => {
 
 
 const ViewCart = catchAsync(async (req, res, next) => {
-    console.log("View Cart controller")
-    const { buyerId } = req.params;
+    const buyerId = req.user.id;
 
     const cart = await Cart.findOne({ buyerId })
         .populate({
             path: "items.productId",
-            select: "title ownerId price imageUrls",
+            select: "title ownerId price salePrice imageUrls",
             populate: {
                 path: "ownerId",
                 select: "name"
@@ -258,6 +258,17 @@ const ViewCart = catchAsync(async (req, res, next) => {
         })
         .lean();
 
+    if (!cart || !cart.items?.length) {
+        return res.status(200).json({
+            responseCode: "00",
+            status: "success",
+            data: {
+                items: [],
+                total: 0
+            }
+        });
+    }
+
 
     const items = cart.items.map(item => {
         const product = item.productId;
@@ -266,7 +277,7 @@ const ViewCart = catchAsync(async (req, res, next) => {
 
         const productPrice = bid
             ? bid.priceOffered
-            : product.price;
+            : getProductPrice(product);
 
         return {
             productId: product._id,
@@ -421,6 +432,40 @@ const getProductOrders = async (req, res, next) => {
 };
 
 
+
+export const getBuyerOrderStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const buyerId = req.user.id;
+
+        const order = await getBuyerOrderStatusService(
+            orderId,
+            buyerId
+        );
+
+        return res.status(200).json({
+            status: "success",
+            responseCode: "00",
+            data: order,
+        });
+    } catch (error) {
+        console.error("Get buyer order status error:", error);
+
+        if (error.statusCode) {
+            return res.status(error.statusCode).json({
+                status: "fail",
+                responseCode: error.responseCode || "01",
+                error: error.message,
+            });
+        }
+
+        return res.status(500).json({
+            status: "fail",
+            responseCode: "02",
+            error: error.message,
+        });
+    }
+};
 
 
 export {

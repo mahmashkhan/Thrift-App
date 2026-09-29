@@ -1,6 +1,10 @@
 {
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1077.0",
+    "@tmcw/togeojson": "^7.1.2",
+    "@turf/boolean-point-in-polygon": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
+    "@xmldom/xmldom": "^0.9.12",
     "axios": "^1.18.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",

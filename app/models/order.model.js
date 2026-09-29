@@ -53,6 +53,11 @@ const OrderSchema = new mongoose.Schema(
                     required: true
                 },
 
+                sellerPhone: {
+                    type: String,
+                    required: true
+                },
+
                 items: [
                     {
                         productId: {
@@ -126,7 +131,10 @@ const OrderSchema = new mongoose.Schema(
                         type: Number,
                         default: 0
                     },
-
+                    deliveryFeeBreakdown: {
+                        type: mongoose.Schema.Types.Mixed,
+                        default: null
+                    },
                     deliveryMethod: {
                         type: String,
                         default: null
@@ -135,7 +143,47 @@ const OrderSchema = new mongoose.Schema(
                     estimatedDelivery: {
                         type: String,
                         default: null
+                    },
+                    fourHourEligible: {
+                        type: Boolean,
+                        default: null
                     }
+                },
+                courier: {
+                    provider: { type: String, default: "quiqup" },
+                    shipmentId: { type: String, default: null },
+                    trackingNumber: { type: String, default: null },
+                    trackingUrl: { type: String, default: null },
+                    labelUrls: {
+                        type: [String],
+                        default: []
+                    },
+                    status: {
+                        type: String,
+                        enum: ["PENDING", "CREATED", "FAILED"],
+                        default: "PENDING"
+                    },
+                    lastError: { type: String, default: null },
+                    attempts: { type: Number, default: 0 },
+                    lastAttemptAt: { type: Date, default: null },
+                    quiqupState: { type: String, default: null },
+                    quiqupStateUpdatedAt: { type: Date, default: null },
+                    deliveryAttempts: { type: Number, default: 0 },
+                    deliveryFailureReason: { type: String, default: null }
+                },
+                deliveryStatus: {
+                    type: String,
+                    enum: [
+                        "PENDING",
+                        "PICKUP_CREATED",
+                        "PICKED_UP",
+                        "IN_TRANSIT",
+                        "DELIVERED",
+                        "FAILED",
+                        "RETURNED",
+                        "CANCELLED"
+                    ],
+                    default: "PENDING"
                 }
             }
         ],
@@ -203,7 +251,8 @@ const OrderSchema = new mongoose.Schema(
                 "PAID",
                 "FAILED",
                 "REFUNDED",
-                "PARTIALLY_REFUNDED"
+                "PARTIALLY_REFUNDED",
+                "CANCELLED"
             ],
             default: "PENDING"
         },

@@ -17,7 +17,7 @@ import chatRoutes from "./routes/chat.routes.js";
 import favouriteRoutes from "./routes/favourites.routes.js";
 import notificationRoutes from "./routes/notifications.routes.js";
 import fileRoutes from "./routes/file.routes.js";
-import filterRoutes from "./routes/filterOPtion.routes.js"
+import filterRoutes from "./routes/filterOption.routes.js"
 // import paymentRoutes from "./routes/payment.routes.js";
 // import {
 //     stripeWebhook
@@ -36,7 +36,7 @@ app.use("/api/v1/webhooks", webhookRoutes);
 
 app.use(express.json());
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: true,
     credentials: true
 }));
 app.use(passport.initialize());

@@ -15,27 +15,14 @@ const conversationSchema = new mongoose.Schema(
             ref: "Product",
             required: false
         },
-        lastMessage: {
-            type: String,
-            default: ""
-        },
-        lastMessageAt: {
-            type: Date,
-            default: null
-        },
-        isBlocked: {
-            type: Boolean,
-            default: false
-        },
-        blockedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            default: null
-        },
-        conversationKey: {
-            type: String,
-            unique: true
-        }
+
+        blocked_by: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+        last_message: { type: String, default: null },
+        last_message_at: { type: Date, default: null },
+        unread_counts: { type: Map, of: Number, default: {} },
+        conversationKey: { type: String, required: true, unique: true },
+        context_type: { type: String, default: null },
+        context_id: { type: String, default: null }
     },
     { timestamps: true }
 );

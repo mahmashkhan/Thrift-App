@@ -443,7 +443,7 @@ const changePassword = catchAsync(async (req, res, next) => {
 
 const addNewAddress = catchAsync(async (req, res, next) => {
 
-    const { label, addressLine1, addressLine2, city, state, zipCode, country } = req.body;
+    const { label, addressLine1, addressLine2, city, state, zipCode, country, lat, lng } = req.body;
     const user = await User.findById(req.user.id);
 
     if (!user) {
@@ -451,12 +451,7 @@ const addNewAddress = catchAsync(async (req, res, next) => {
     }
 
     if (user.addresses.length >= 2) {
-        return next(
-            new AppError(
-                "You can only save up to 2 addresses.",
-                400
-            )
-        );
+        return next(new AppError("You can only save up to 2 addresses.", 400));
     }
 
     const alreadyExists = user.addresses.some(address =>
@@ -464,12 +459,7 @@ const addNewAddress = catchAsync(async (req, res, next) => {
     );
 
     if (alreadyExists) {
-        return next(
-            new AppError(
-                `Address with label '${label}' already exists.`,
-                400
-            )
-        );
+        return next(new AppError(`Address with label '${label}' already exists.`, 400));
     }
 
     user.addresses.push({
@@ -480,7 +470,11 @@ const addNewAddress = catchAsync(async (req, res, next) => {
         state,
         zipCode,
         country,
-        isDefault: user.addresses.length === 0
+        isDefault: user.addresses.length === 0,
+        coordinates: {
+            lat: lat ?? null,
+            lng: lng ?? null
+        }
     });
 
     await user.save();
@@ -490,7 +484,6 @@ const addNewAddress = catchAsync(async (req, res, next) => {
         status: "success",
         data: user.addresses
     });
-
 });
 
 
@@ -665,44 +658,41 @@ const createSellerProfile = catchAsync(async (req, res, next) => {
         dateOfBirth,
         location,
         addressLine1,
-        paypalEmail
+        paypalEmail,
+        lat,
+        lng
     } = req.body;
 
-    // Check user exists
     const user = await User.findById(userId);
 
     if (!user) {
         return next(new AppError("User not found", 404));
     }
 
-    // Check if seller profile already exists
     const existingProfile = await Seller.findOne({ userId });
 
     if (existingProfile) {
-        return next(
-            new AppError("Seller profile already exists", 409)
-        );
+        return next(new AppError("Seller profile already exists", 409));
     }
 
-    // Create seller profile
     const sellerProfile = await Seller.create({
         userId,
         dateOfBirth,
         location,
         addressLine1,
         paypalEmail,
+        coordinates: {
+            lat: lat ?? null,
+            lng: lng ?? null
+        },
         status: "approved"
     });
 
-    // Add seller role if not already present
     await User.findByIdAndUpdate(userId, {
-        $addToSet: {
-            roles: "seller"
-        }
+        $addToSet: { roles: "seller" }
     });
 
     successResponse(res, 201, sanitizeResponse(sellerProfile));
-
 });
 
 const getSellerProfile = catchAsync(async (req, res, next) => {

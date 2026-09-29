@@ -1,4 +1,4 @@
-import { io } from "../server.js";
+import { getIO } from "../socket/index.js";
 
 export const emitNotification = (userIds, notification) => {
 
@@ -10,7 +10,7 @@ export const emitNotification = (userIds, notification) => {
 
     recipients.forEach(userId => {
         console.log("USER IDS", userId)
-        io.to(userId.toString()).emit(
+        getIO.to(userId.toString()).emit(
             "receiveNotification",
             notification
         );

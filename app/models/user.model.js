@@ -6,8 +6,6 @@ const AddressSchema = new mongoose.Schema({
         enum: ["Home", "Work", "Other"],
         default: "Home"
     },
-
-
     addressLine1: {
         type: String,
         required: true
@@ -27,7 +25,7 @@ const AddressSchema = new mongoose.Schema({
 
     zipCode: {
         type: String,
-        required: true
+        required: false
     },
 
     country: {
@@ -38,6 +36,11 @@ const AddressSchema = new mongoose.Schema({
     isDefault: {
         type: Boolean,
         default: false
+    },
+
+    coordinates: {
+        lat: { type: Number, default: null },
+        lng: { type: Number, default: null }
     }
 
 }, { _id: true });
@@ -135,12 +138,6 @@ const UserSchema = new mongoose.Schema({
 
     addresses: {
         type: [AddressSchema],
-        // validate: {
-        //     validator: function (addresses) {
-        //         return addresses.length <= 2;
-        //     },
-        //     message: "A user can have at most 2 addresses."
-        // },
         default: []
     },
 
@@ -174,40 +171,26 @@ const SellerProfileSchema = new mongoose.Schema({
         unique: true
     },
 
-
     dateOfBirth: Date,
-
     location: String,
-
     addressLine1: String,
-
     paypalEmail: String,
 
-    averageRating: {
-        type: Number,
-        default: 0
+    coordinates: {
+        lat: { type: Number, default: null },
+        lng: { type: Number, default: null }
     },
 
-    totalReviews: {
-        type: Number,
-        default: 0
-    },
+    averageRating: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
 
     status: {
         type: String,
-        enum: [
-            "pending",
-            "approved",
-            "rejected",
-            "inactive"
-        ],
+        enum: ["pending", "approved", "rejected", "inactive"],
         default: "approved"
     }
 
-}, {
-    timestamps: true
-});
-
+}, { timestamps: true });
 
 
 const InfluencerProfileSchema = new mongoose.Schema({

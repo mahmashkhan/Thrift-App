@@ -1,0 +1,1 @@
+export const QUIQUP_BASE_URL = "https://api.staging.quiqup.com"; 

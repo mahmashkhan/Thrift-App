@@ -75,6 +75,34 @@ export const adminCreateUserValidator = Joi.object({
 });
 
 
+export const courierConfigUpdateValidator = Joi.object({
+    baseFee: Joi.number().min(0),
+    fuelSurchargePercent: Joi.number().min(0).max(100),
+    vatPercent: Joi.number().min(0).max(100),
+    radiusKm: Joi.number().min(0),
+
+    beyondRadius: Joi.object({
+
+        feeType: Joi.string().valid("unset", "flat", "per_km", "not_serviced"),
+
+        flatFee: Joi.number().min(0)
+            .when("feeType", {
+                is: "flat",
+                then: Joi.number().min(0).required(),
+                otherwise: Joi.number().min(0).allow(null).optional()
+            }),
+
+        perKmRate: Joi.number().min(0)
+            .when("feeType", {
+                is: "per_km",
+                then: Joi.number().min(0).required(),
+                otherwise: Joi.number().min(0).allow(null).optional()
+            })
+
+    }).min(1)
+
+}).min(1);
+
 // export const influencerValidators = Joi.object({
 
 //     name: Joi.string().optional().allow(""),

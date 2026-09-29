@@ -37,7 +37,11 @@ export const sellerProfileValidator = Joi.object({
 
     paypalEmail: Joi.string()
         .email()
-        .required()
+        .required(),
+
+    lat: Joi.number().min(-90).max(90).required(),
+    lng: Joi.number().min(-180).max(180).required()
+
 
 });
 
@@ -102,12 +106,16 @@ export const addNewAddressValidator = Joi.object({
     zipCode: Joi.string()
         .trim()
         .max(20)
-        .required(),
+        .optional(),
 
     country: Joi.string()
         .trim()
         .max(100)
-        .required()
+        .required(),
+
+    lat: Joi.number().min(-90).max(90).required(),
+    lng: Joi.number().min(-180).max(180).required()
+
 
 });
 

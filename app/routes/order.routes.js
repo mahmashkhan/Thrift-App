@@ -1,9 +1,9 @@
 import { Router } from "express";
 import {
-     acceptBid, addToCart, checkOut, createBid, getBuyerOrders, getOwnerOrders, getProductBids, getProductOrders,
-     prepareOrder,
-     rejectBid, ViewCart,
-     withdrawBid
+    acceptBid, addToCart, checkOut, createBid, getBuyerOrders, getBuyerOrderStatus, getOwnerOrders, getProductBids, getProductOrders,
+    prepareOrder,
+    rejectBid, ViewCart,
+    withdrawBid
 } from "../controllers/order.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { allowedUsers } from "../middleware/authorizationMiddleware.js";
@@ -18,7 +18,7 @@ router.post('/bid/accept/:bidId', allowedUsers("admin", "seller"), acceptBid);
 router.post('/bid/reject/:bidId', allowedUsers("admin", "seller"), rejectBid);
 router.post('/bid/withdraw/:bidId', allowedUsers(), withdrawBid);
 router.post('/cart/add', allowedUsers(), addToCart);
-router.get('/cart/get/:buyerId', allowedUsers(), ViewCart);
+router.get('/cart/get', allowedUsers(), ViewCart);
 
 
 router.post("/prepare/invoice", allowedUsers(), prepareOrder);
@@ -29,6 +29,6 @@ router.get('/get/buyer/:buyerId', allowedUsers("admin", "buyer"), getBuyerOrders
 router.get('/get/owner/:ownerId', allowedUsers("admin", "seller", "influencer"), getOwnerOrders);
 router.get('/get/product/:productId', allowedUsers("admin", "seller, influencer"), getProductOrders);
 
-
+router.get("/:orderId/status", allowedUsers("buyer"), getBuyerOrderStatus);
 
 export default router;

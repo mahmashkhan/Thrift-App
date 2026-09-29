@@ -1,9 +1,10 @@
 import Cart from "../models/cart.model.js";
-import Product from "../models/product.model.js";
-import Bid from "../models/bid.model.js";
-import stripe from "../config/stripe.js";
 import Order from "../models/order.model.js";
+import Product from '../models/product.model.js';
 import { createPaymentIntent } from "../controllers/stripe.controller.js";
+import { applyShippingDetails } from "../utils/shipping.helper.js";
+import AppError from "../utils/AppError.js";
+import mongoose from "mongoose";
 
 export const prepareOrderService = async (buyerId) => {
 
@@ -13,7 +14,7 @@ export const prepareOrderService = async (buyerId) => {
             select: "title ownerId price salePrice imageUrls stock status",
             populate: {
                 path: "ownerId",
-                select: "name"
+                select: "name phone"
             }
         })
         .populate({
@@ -21,6 +22,8 @@ export const prepareOrderService = async (buyerId) => {
             select: "priceOffered status productId buyerId"
         })
         .lean();
+
+
 
     if (!cart || !cart.items?.length) {
         throw new Error("Cart is empty");
@@ -49,38 +52,23 @@ export const prepareOrderService = async (buyerId) => {
             );
         }
 
-        // Bid price or normal product price
-        const unitPrice = bid
-            ? bid.priceOffered
-            : product.salePrice;
 
-        if (bid) {
-
-            if (bid.buyerId.toString() !== buyerId.toString()) {
-                throw new Error("Invalid bid");
-            }
-
-            if (bid.productId.toString() !== product._id.toString()) {
-                throw new Error(
-                    "Bid does not belong to the selected product"
-                );
-            }
-
-            if (bid.status !== "accepted") {
-                throw new Error(
-                    `Bid is not accepted for "${product.title}"`
-                );
-            }
-        }
-
-        const itemTotal = unitPrice * item.quantity;
+        const { unitPrice, itemTotal } = calculateItemPrice({
+            bid,
+            product,
+            buyerId,
+            quantity: item.quantity
+        });
 
         const sellerId = product.ownerId._id.toString();
+
+
 
         if (!shipmentMap.has(sellerId)) {
             shipmentMap.set(sellerId, {
                 sellerId: product.ownerId._id,
                 sellerName: product.ownerId.name,
+                sellerPhone: product.ownerId.phone,
 
                 items: [],
                 subtotal: 0,
@@ -97,6 +85,8 @@ export const prepareOrderService = async (buyerId) => {
 
         const shipment = shipmentMap.get(sellerId);
 
+
+
         shipment.items.push({
             productId: product._id,
             bidId: bid?._id || null,
@@ -112,12 +102,16 @@ export const prepareOrderService = async (buyerId) => {
 
     const shipments = [...shipmentMap.values()];
 
+    await applyShippingDetails(buyerId, shipments);
+
     const subtotal = shipments.reduce(
         (sum, shipment) => sum + shipment.subtotal,
         0
     );
 
-    const deliveryCharges = 0;
+    const deliveryCharges = shipments.reduce(
+        (sum, s) => sum + s.shipping.deliveryFee, 0
+    );
     const discount = 0;
 
     return {
@@ -132,6 +126,9 @@ export const prepareOrderService = async (buyerId) => {
     };
 };
 
+
+export const getProductPrice = (product) =>
+    product.salePrice ? product.salePrice : product.price;
 
 // order.service.js
 
@@ -155,7 +152,7 @@ const calculateItemPrice = ({ bid, product, buyerId, quantity }) => {
         unitPrice = bid.priceOffered;
 
     } else {
-        unitPrice = product.salePrice ? product.salePrice : product.price;
+        unitPrice = getProductPrice(product)
     }
 
     const itemTotal = unitPrice * quantity;
@@ -204,16 +201,20 @@ const orderSettlement = ({ quantity, unitPrice }) => {
     };
 };
 
+
+const releaseReservedStock = async (reservedItems) => {
+    for (const { productId, quantity } of reservedItems) {
+        await Product.updateOne({ _id: productId }, { $inc: { stock: quantity } });
+    }
+};
+
 export const createOrderService = async (buyerId) => {
 
     const cart = await Cart.findOne({ buyerId })
         .populate({
             path: "items.productId",
             select: "title ownerId price salePrice imageUrls stock status",
-            populate: {
-                path: "ownerId",
-                select: "name"
-            }
+            populate: { path: "ownerId", select: "name phone" }
         })
         .populate({
             path: "items.bidId",
@@ -226,189 +227,211 @@ export const createOrderService = async (buyerId) => {
     }
 
     const shipmentMap = new Map();
-
     let subtotal = 0;
     let totalPlatformFees = 0;
     let totalSellerAmount = 0;
     let totalInfluencerAmount = 0;
+    const reservedItems = [];
 
-    for (const cartItem of cart.items) {
+    try {
+        for (const cartItem of cart.items) {
 
-        const product = cartItem.productId;
-        const bid = cartItem.bidId;
+            const product = cartItem.productId;
+            const bid = cartItem.bidId;
 
-        validateProduct(product, cartItem.quantity);
+            validateProduct(product, cartItem.quantity);
 
-        // --------------------------------
-        // Determine product price
-        // --------------------------------
+            // Real enforcement point — atomic, race-safe. validateProduct's
+            // stock check above is just a fast-fail on the snapshot data.
+            const reserved = await Product.findOneAndUpdate(
+                { _id: product._id, stock: { $gte: cartItem.quantity } },
+                { $inc: { stock: -cartItem.quantity } },
+                { new: true }
+            );
 
-        const { unitPrice, itemTotal } = calculateItemPrice({
-            bid,
-            product,
-            buyerId,
-            quantity: cartItem.quantity
-        });
+            if (!reserved) {
+                throw new AppError(`Insufficient stock for "${product.title}"`, 400);
+            }
 
+            reservedItems.push({ productId: product._id, quantity: cartItem.quantity });
 
-        // --------------------------------
-        // Settlement
-        // --------------------------------
-
-        const settlement = orderSettlement({
-            quantity: cartItem.quantity,
-            unitPrice
-        });
-
-        subtotal += itemTotal;
-
-        totalPlatformFees += settlement.platformFees;
-
-        totalSellerAmount += settlement.sellerAmount;
-
-        // totalInfluencerAmount += settlement.influencerAmount;
-
-
-        // --------------------------------
-        // Shipment
-        // --------------------------------
-
-        const seller = product.ownerId;
-
-        const sellerId = seller._id.toString();
-
-        if (!shipmentMap.has(sellerId)) {
-
-            shipmentMap.set(sellerId, {
-                sellerId: seller._id,
-                sellerName: seller.name,
-
-                items: [],
-
-                subtotal: 0,
-
-                shipping: {
-                    pickupLocation: null,
-                    deliveryLocation: null,
-                    deliveryFee: 0,
-                    deliveryMethod: null,
-                    estimatedDelivery: null
-                }
+            const { unitPrice, itemTotal } = calculateItemPrice({
+                bid, product, buyerId, quantity: cartItem.quantity
             });
+
+            const settlement = orderSettlement({ quantity: cartItem.quantity, unitPrice });
+
+            subtotal += itemTotal;
+            totalPlatformFees += settlement.platformFees;
+            totalSellerAmount += settlement.sellerAmount;
+
+            const seller = product.ownerId;
+            const sellerId = seller._id.toString();
+
+            console.log("Seller ----------------", seller)
+
+            if (!shipmentMap.has(sellerId)) {
+                shipmentMap.set(sellerId, {
+                    sellerId: seller._id,
+                    sellerName: seller.name,
+                    sellerPhone: seller.phone,
+                    items: [],
+                    subtotal: 0,
+                    shipping: {
+                        pickupLocation: null,
+                        deliveryLocation: null,
+                        deliveryFee: 0,
+                        deliveryMethod: null,
+                        estimatedDelivery: null,
+                        fourHourEligible: null
+                    }
+                });
+            }
+
+            const shipment = shipmentMap.get(sellerId);
+            shipment.items.push({
+                title: product.title,
+                productId: product._id,
+                bidId: bid?._id || null,
+                quantity: cartItem.quantity,
+                price: unitPrice,
+                settlement
+            });
+            shipment.subtotal += itemTotal;
         }
 
+        const shipments = Array.from(shipmentMap.values());
 
-        const shipment = shipmentMap.get(sellerId);
+        await applyShippingDetails(buyerId, shipments);
 
-        shipment.items.push({
-            productId: product._id,
-            bidId: bid?._id || null,
+        const deliveryFee = shipments.reduce((sum, s) => sum + s.shipping.deliveryFee, 0);
+        const totalCustomerPays = subtotal + deliveryFee;
 
-            quantity: cartItem.quantity,
-            price: unitPrice,
-
-            settlement
+        const payment = await createPaymentIntent({
+            amount: totalCustomerPays,
+            currency: "aed",
+            buyerId
         });
 
-        shipment.subtotal += itemTotal;
+        const order = await Order.create({
+            buyerId,
+            shipments,
+            subtotal,
+            deliveryFee,
+            totalCustomerPays,
+            platformFeesPercent: 20,
+            platformFeesAmount: totalPlatformFees,
+            totalSellerGets: totalSellerAmount,
+            stripePaymentIntentId: payment.paymentIntentId,
+            paymentStatus: "PENDING",
+            deliveryStatus: "PENDING",
+            buyerConfirmationStatus: "PENDING",
+            settlementStatus: "PENDING",
+            status: "pending"
+        });
+
+        return {
+            orderId: order._id,
+            paymentIntentId: payment.paymentIntentId,
+            clientSecret: payment.clientSecret,
+            shipments,
+            pricing: { subtotal, deliveryFee, totalCustomerPays },
+            paymentStatus: order.paymentStatus
+        };
+
+    } catch (err) {
+        await releaseReservedStock(reservedItems);
+        throw err;
+    }
+};
+
+
+export const getBuyerOrderStatusService = async (orderId, buyerId) => {
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        const error = new Error("Invalid order ID");
+        error.statusCode = 400;
+        error.responseCode = "01";
+        throw error;
     }
 
-
-    const shipments = Array.from(
-        shipmentMap.values()
-    );
-
-
-    // --------------------------------
-    // Overall pricing
-    // --------------------------------
-
-    const deliveryFee = shipments.reduce(
-        (sum, shipment) =>
-            sum + shipment.shipping.deliveryFee,
-        0
-    );
-
-    const totalCustomerPays = subtotal + deliveryFee;
-
-    const payment = await createPaymentIntent({
-        amount: totalCustomerPays,
-        currency: "aed",
-        buyerId
-    });
-
-
-    // --------------------------------
-    // Create pending order
-    // --------------------------------
-
-    const order = await Order.create({
+    const order = await Order.findOne({
+        _id: orderId,
         buyerId,
+    })
+        .select(
+            "shipments subtotal deliveryFee totalCustomerPays paymentStatus deliveryStatus buyerConfirmationStatus status createdAt updatedAt"
+        )
+        .populate({
+            path: "shipments.items.productId",
+            select: "title imageUrls",
+        })
+        .lean();
 
-        shipments,
-
-        subtotal,
-
-        deliveryFee,
-
-        totalCustomerPays,
-
-        platformFeesPercent: 20,
-
-        platformFeesAmount: totalPlatformFees,
-
-        // influencerCommissionAmount: totalInfluencerAmount,
-
-        totalSellerGets: totalSellerAmount,
-
-        stripePaymentIntentId: payment.paymentIntentId,
-
-        paymentStatus: "PENDING",
-
-        deliveryStatus: "PENDING",
-
-        buyerConfirmationStatus: "PENDING",
-
-        settlementStatus: "PENDING",
-
-        status: "pending"
-    });
-
+    if (!order) {
+        const error = new Error("Order not found");
+        error.statusCode = 404;
+        error.responseCode = "01";
+        throw error;
+    }
 
     return {
         orderId: order._id,
 
-        paymentIntentId: payment.paymentIntentId,
-
-        clientSecret: payment.clientSecret,
-
-        shipments,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        deliveryStatus: order.deliveryStatus,
+        buyerConfirmationStatus: order.buyerConfirmationStatus,
 
         pricing: {
-            subtotal,
-            deliveryFee,
-            totalCustomerPays
+            subtotal: order.subtotal,
+            deliveryFee: order.deliveryFee,
+            total: order.totalCustomerPays,
         },
 
-        paymentStatus: order.paymentStatus
+        shipments: order.shipments.map((shipment) => ({
+            shipmentId: shipment._id,
+
+            seller: {
+                id: shipment.sellerId,
+                name: shipment.sellerName,
+            },
+
+            items: shipment.items.map((item) => ({
+                productId: item.productId?._id || item.productId,
+                title: item.productId?.title,
+                imageUrls: item.productId?.imageUrls || [],
+                bidId: item.bidId,
+                quantity: item.quantity,
+                price: item.price,
+                total: item.price * item.quantity,
+            })),
+
+            subtotal: shipment.subtotal,
+
+            shipping: {
+                pickupLocation: shipment.shipping?.pickupLocation,
+                deliveryLocation: shipment.shipping?.deliveryLocation,
+                deliveryFee: shipment.shipping?.deliveryFee,
+                deliveryMethod: shipment.shipping?.deliveryMethod,
+                estimatedDelivery: shipment.shipping?.estimatedDelivery,
+                fourHourEligible: shipment.shipping?.fourHourEligible,
+            },
+
+            courier: {
+                provider: shipment.courier?.provider,
+                status: shipment.courier?.status,
+                shipmentId: shipment.courier?.shipmentId,
+                trackingNumber: shipment.courier?.trackingNumber,
+                trackingUrl: shipment.courier?.trackingUrl,
+                quiqupState: shipment.courier?.quiqupState,
+                deliveryAttempts: shipment.courier?.deliveryAttempts,
+                deliveryFailureReason: shipment.courier?.deliveryFailureReason,
+            },
+
+            deliveryStatus: shipment.deliveryStatus,
+        })),
+
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
     };
 };
-
-
-
-// export const createPaymentService = async ({
-//     amount,
-//     currency
-// }) => {
-
-//     const paymentIntent = await stripe.paymentIntents.create({
-//         amount,
-//         currency
-//     });
-
-//     return {
-//         paymentIntentId: paymentIntent.id,
-//         clientSecret: paymentIntent.client_secret,
-//         status: paymentIntent.status
-//     };
-// };

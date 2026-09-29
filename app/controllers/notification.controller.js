@@ -4,7 +4,7 @@ import Notification from '../models/notification.model.js';
 import { successResponse, errorResponse } from '../utils/common/responseObject.js';
 import catchAsync from '../utils/catchAsync.js';
 import { sanitizeResponse } from '../utils/common/sanitizeResponse.js';
-import { io } from '../server.js';
+// import { io } from '../server.js';
 import { emitNotification } from '../utils/socketNotifications.js';
 
 // controllers/notification.controller.js
