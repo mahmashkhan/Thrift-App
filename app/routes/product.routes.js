@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus, addReview, getProductReviews, updateReview, deleteReview, getRootCategories, getChildCategories, getCategory, updateCategory, getProductsByCategory } from "../controllers/product.controller.js";
+import { addProductToFavourite, createProduct, deleteProduct, getBuyerFavourites, getProductByStatus, getProductsByOwner, getSingleProduct, removeItemFromFav, searchProdByFilter, updateProductData, updateProductStatus, addReview, getProductReviews, updateReview, deleteReview, getRootCategories, getChildCategories, getCategory, updateCategory, getProductsByCategory,getRecommendedProducts } from "../controllers/product.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { allowedUsers, optionalAuth } from "../middleware/authorizationMiddleware.js";
 import { validate } from "../middleware/validate.params.js";
@@ -9,7 +9,11 @@ import { createCategory } from "../controllers/product.controller.js";
 
 const router = Router();
 
-
+router.get(
+    "/recommended",
+    allowedUsers(),
+    getRecommendedProducts
+);
 router.post("/create", validate(productValidator), allowedUsers("admin", "seller"), createProduct);
 router.get("/get", allowedUsers(), getProductByStatus);
 router.get("/search", optionalAuth, searchProdByFilter);
@@ -19,6 +23,7 @@ router.get("/category/:categoryId", allowedUsers(), getProductsByCategory);
 router.put("/update/:id", validate(productUpdateValidator), allowedUsers("admin", "seller"), updateProductData);
 router.put("/update/status/:id", allowedUsers("admin"), updateProductStatus);
 router.delete("/delete/:id", allowedUsers("admin", "seller"), deleteProduct);
+
 
 router.post("/favourite/add", allowedUsers(), addProductToFavourite);
 router.get("/favourite/get/:buyerId", allowedUsers(), getBuyerFavourites);

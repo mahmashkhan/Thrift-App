@@ -11,7 +11,8 @@ import {
     // getSinglInfluencer,
     // deleteInfluencer,
     getSingleUser,
-    adminCreateUser
+    adminCreateUser,
+    getAdminStats
 } from "../controllers/admin.controller.js"
 import {
     createPolicy,
@@ -46,7 +47,7 @@ const router = Router();
 
 //Influencer Management 
 router.get("/inf/metrics/:id", allowedUsers("admin", "influencer"), getInfluencerMetrics);
-
+router.get("/stats", getAdminStats);
 
 // ==================================================
 router.post("/create-user", validate(adminCreateUserValidator), allowedUsers("admin"), adminCreateUser);

@@ -27,14 +27,14 @@ const ProductSchema = new mongoose.Schema(
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
 
     // Listing type
     sellType: {
       type: String,
       enum: ["self", "sellForMe", "influencer"],
-      required: true
+      required: true,
     },
 
     // If influencer is promoting another product
@@ -48,13 +48,13 @@ const ProductSchema = new mongoose.Schema(
     managedBy: {
       type: String,
       enum: ["seller", "admin", "influencer"],
-      default: "seller"
+      default: "seller",
     },
 
     managedById: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
 
     // Commission rate only applicable for influencer
@@ -64,7 +64,7 @@ const ProductSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["pending", "approved", "rejected", "inactive"],
-      default: "pending"
+      default: "pending",
     },
 
     // Optional admin remarks for rejection, updates etc
@@ -72,21 +72,19 @@ const ProductSchema = new mongoose.Schema(
 
     // For availability
     stock: { type: Number, default: 1 },
-    size:
-    {
+    size: {
       type: String,
       required: true,
-      enum: ["XS", "S", "M", "L", "XL", "XXL", "Free Size"]
-    }
-    ,
+      enum: ["XS", "S", "M", "L", "XL", "XXL", "Free Size"],
+    },
     brand: {
       type: String,
-      trim: true
+      trim: true,
     },
     condition: {
       type: String,
       enum: ["New", "Like New", "Used", "Refurbished"],
-      default: "New"
+      default: "New",
     },
     details: {
       type: String,
@@ -98,7 +96,7 @@ const ProductSchema = new mongoose.Schema(
     totalReviews: {
       type: Number,
       default: 0,
-    }
+    },
     // Track who approved product
     // approvedByAdmin: {
     //   type: mongoose.Schema.Types.ObjectId,
@@ -107,10 +105,18 @@ const ProductSchema = new mongoose.Schema(
     // }
   },
   {
-    tags: { type: Array, default: null }
+    styles: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+  },
+  {
+    tags: { type: Array, default: null },
   },
 
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Product", ProductSchema);

@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import AppError from "../utils/AppError.js";
 import { sanitizeResponse } from "../utils/common/sanitizeResponse.js";
 import { successResponse } from "../utils/common/responseObject.js";
+import Product from "../models/product.model.js";
+import Order from "../models/order.model.js";
 
 
 const listUsers = catchAsync(async (req, res) => {
@@ -226,11 +228,511 @@ const getInfluencerMetrics = catchAsync(async (req, res, next) => {
     });
 });
 
+
+const getAdminStats = async (req, res, next) => {
+  try {
+    const [
+      totalUsers,
+      totalBuyers,
+      totalSellers,
+      totalInfluencers,
+
+      activeUsers,
+      inactiveUsers,
+      suspendedUsers,
+      verifiedUsers,
+
+      totalProducts,
+      approvedProducts,
+      pendingProducts,
+      rejectedProducts,
+      inactiveProducts,
+      outOfStockProducts,
+
+      totalOrders,
+      pendingOrders,
+      confirmedOrders,
+      shippedOrders,
+      completedOrders,
+      cancelledOrders,
+
+      pendingPayments,
+      paidPayments,
+      failedPayments,
+      refundedPayments,
+      partiallyRefundedPayments,
+
+      salesStats,
+      influencerStats,
+      settlementStats
+    ] = await Promise.all([
+
+      // =========================
+      // USERS
+      // =========================
+
+      User.countDocuments(),
+
+      User.countDocuments({
+        roles: "buyer"
+      }),
+
+      User.countDocuments({
+        roles: "seller"
+      }),
+
+      User.countDocuments({
+        roles: "influencer"
+      }),
+
+      User.countDocuments({
+        status: "active"
+      }),
+
+      User.countDocuments({
+        status: "inactive"
+      }),
+
+      User.countDocuments({
+        status: "suspended"
+      }),
+
+      User.countDocuments({
+        isVerified: true
+      }),
+
+
+      // =========================
+      // PRODUCTS
+      // =========================
+
+      Product.countDocuments(),
+
+      Product.countDocuments({
+        status: "approved"
+      }),
+
+      Product.countDocuments({
+        status: "pending"
+      }),
+
+      Product.countDocuments({
+        status: "rejected"
+      }),
+
+      Product.countDocuments({
+        status: "inactive"
+      }),
+
+      Product.countDocuments({
+        stock: { $lte: 0 }
+      }),
+
+
+      // =========================
+      // ORDERS
+      // =========================
+
+      Order.countDocuments(),
+
+      Order.countDocuments({
+        status: "pending"
+      }),
+
+      Order.countDocuments({
+        status: "confirmed"
+      }),
+
+      Order.countDocuments({
+        status: "shipped"
+      }),
+
+      Order.countDocuments({
+        status: "completed"
+      }),
+
+      Order.countDocuments({
+        status: "cancelled"
+      }),
+
+
+      // =========================
+      // PAYMENTS
+      // =========================
+
+      Order.countDocuments({
+        paymentStatus: "PENDING"
+      }),
+
+      Order.countDocuments({
+        paymentStatus: "PAID"
+      }),
+
+      Order.countDocuments({
+        paymentStatus: "FAILED"
+      }),
+
+      Order.countDocuments({
+        paymentStatus: "REFUNDED"
+      }),
+
+      Order.countDocuments({
+        paymentStatus: "PARTIALLY_REFUNDED"
+      }),
+
+
+      // =========================
+      // SALES
+      // =========================
+
+      Order.aggregate([
+        {
+          $match: {
+            paymentStatus: {
+              $in: ["PAID", "PARTIALLY_REFUNDED"]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+
+            grossSales: {
+              $sum: "$totalCustomerPays"
+            },
+
+            platformRevenue: {
+              $sum: "$platformFeesAmount"
+            },
+
+            sellerAmount: {
+              $sum: "$totalSellerGets"
+            },
+
+            influencerCommission: {
+              $sum: "$influencerCommissionAmount"
+            },
+
+            totalDeliveryFees: {
+              $sum: "$deliveryFee"
+            }
+          }
+        }
+      ]),
+
+
+      // =========================
+      // INFLUENCER STATS
+      // =========================
+
+      Order.aggregate([
+        {
+          $match: {
+            is_influencer_order: true,
+
+            paymentStatus: {
+              $in: ["PAID", "PARTIALLY_REFUNDED"]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+
+            ordersGenerated: {
+              $sum: 1
+            },
+
+            salesGenerated: {
+              $sum: "$totalCustomerPays"
+            },
+
+            commissionGenerated: {
+              $sum: "$influencerCommissionAmount"
+            }
+          }
+        }
+      ]),
+
+
+      // =========================
+      // SELLER SETTLEMENT
+      // =========================
+
+      Order.aggregate([
+        {
+          $unwind: "$shipments"
+        },
+        {
+          $group: {
+            _id: "$shipments.settlementStatus",
+
+            amount: {
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$shipments.settlementStatus",
+                      "SETTLED"
+                    ]
+                  },
+                  "$totalSellerGets",
+                  0
+                ]
+              }
+            },
+
+            count: {
+              $sum: 1
+            }
+          }
+        }
+      ])
+    ]);
+
+
+    // =========================
+    // SALES RESULT
+    // =========================
+
+    const sales = salesStats[0] || {
+      grossSales: 0,
+      platformRevenue: 0,
+      sellerAmount: 0,
+      influencerCommission: 0,
+      totalDeliveryFees: 0
+    };
+
+
+    // =========================
+    // INFLUENCER RESULT
+    // =========================
+
+    const influencer = influencerStats[0] || {
+      ordersGenerated: 0,
+      salesGenerated: 0,
+      commissionGenerated: 0
+    };
+
+
+    // =========================
+    // SETTLEMENT RESULT
+    // =========================
+
+    let pendingPayouts = 0;
+    let readyPayouts = 0;
+    let settledPayouts = 0;
+    let failedPayouts = 0;
+    let onHoldPayouts = 0;
+
+    settlementStats.forEach((item) => {
+      switch (item._id) {
+        case "PENDING":
+          pendingPayouts += item.count;
+          break;
+
+        case "READY":
+          readyPayouts += item.count;
+          break;
+
+        case "SETTLED":
+          settledPayouts += item.count;
+          break;
+
+        case "FAILED":
+          failedPayouts += item.count;
+          break;
+
+        case "ON_HOLD":
+          onHoldPayouts += item.count;
+          break;
+      }
+    });
+
+
+    // =========================
+    // RESPONSE
+    // =========================
+
+    return res.status(200).json({
+      responseCode: "00",
+      status: "success",
+
+      data: {
+
+        // =====================
+        // OVERVIEW
+        // =====================
+
+        overview: {
+          totalUsers,
+          totalBuyers,
+          totalSellers,
+          totalInfluencers,
+
+          totalProducts,
+
+          totalOrders
+        },
+
+
+        // =====================
+        // USERS
+        // =====================
+
+        users: {
+          total: totalUsers,
+
+          buyers: totalBuyers,
+
+          sellers: totalSellers,
+
+          influencers: totalInfluencers,
+
+          active: activeUsers,
+
+          inactive: inactiveUsers,
+
+          suspended: suspendedUsers,
+
+          verified: verifiedUsers
+        },
+
+
+        // =====================
+        // SALES
+        // =====================
+
+        sales: {
+          grossSales: sales.grossSales || 0,
+
+          platformRevenue: sales.platformRevenue || 0,
+
+          sellerAmount: sales.sellerAmount || 0,
+
+          influencerCommission:
+            sales.influencerCommission || 0,
+
+          deliveryFees:
+            sales.totalDeliveryFees || 0
+        },
+
+
+        // =====================
+        // ORDERS
+        // =====================
+
+        orders: {
+          total: totalOrders,
+
+          pending: pendingOrders,
+
+          confirmed: confirmedOrders,
+
+          shipped: shippedOrders,
+
+          completed: completedOrders,
+
+          cancelled: cancelledOrders
+        },
+
+
+        // =====================
+        // PAYMENTS
+        // =====================
+
+        payments: {
+          pending: pendingPayments,
+
+          paid: paidPayments,
+
+          failed: failedPayments,
+
+          refunded: refundedPayments,
+
+          partiallyRefunded: partiallyRefundedPayments
+        },
+
+
+        // =====================
+        // PRODUCTS
+        // =====================
+
+        products: {
+          total: totalProducts,
+
+          approved: approvedProducts,
+
+          pending: pendingProducts,
+
+          rejected: rejectedProducts,
+
+          inactive: inactiveProducts,
+
+          outOfStock: outOfStockProducts
+        },
+
+
+        // =====================
+        // INFLUENCERS
+        // =====================
+
+        influencers: {
+          total: totalInfluencers,
+
+          active: await User.countDocuments({
+            roles: "influencer",
+            status: "active"
+          }),
+
+          inactive: await User.countDocuments({
+            roles: "influencer",
+            status: {
+              $ne: "active"
+            }
+          }),
+
+          ordersGenerated:
+            influencer.ordersGenerated || 0,
+
+          salesGenerated:
+            influencer.salesGenerated || 0,
+
+          commissionGenerated:
+            influencer.commissionGenerated || 0
+        },
+
+
+        // =====================
+        // SELLER PAYOUTS
+        // =====================
+
+        sellerPayouts: {
+          pending: pendingPayouts,
+
+          ready: readyPayouts,
+
+          settled: settledPayouts,
+
+          failed: failedPayouts,
+
+          onHold: onHoldPayouts
+        }
+      }
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 export {
     getInfluencerMetrics,
     adminCreateUser,
     deleteUser,
     updateUser,
     getSingleUser,
-    listUsers
+    listUsers,
+    getAdminStats
 }

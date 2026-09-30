@@ -64,7 +64,7 @@ router.get("/options", getPreferenceOptions);
 
 
 // User preferences
-router.patch("/preferences/set", validate(setPreferencesValidator), allowedUsers(), setPreferences);
+router.post("/preferences/set", validate(setPreferencesValidator), allowedUsers(), setPreferences);
 router.patch("/preferences/skip", allowedUsers(), skipPreferences);
 router.get("/preferences/me", allowedUsers(), getMyPreferences);
 
