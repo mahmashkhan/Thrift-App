@@ -180,15 +180,30 @@ const withdrawBid = catchAsync(async (req, res, next) => {
 
 
 const addToCart = catchAsync(async (req, res, next) => {
-    const { productId } = req.body;
+    const { productId, quantity = 1 } = req.body;
 
     const buyerId = req.user.id;
+
+    // Validate quantity
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        return next(new AppError("Quantity must be at least 1", 400));
+    }
 
     // Check product exists
     const product = await Product.findById(productId);
 
     if (!product || product.status !== "approved") {
         return next(new AppError("Product not available", 404));
+    }
+
+    // Check stock
+    if (quantity > product.stock) {
+        return next(
+            new AppError(
+                `Only ${product.stock} item(s) available in stock`,
+                400
+            )
+        );
     }
 
     // Find user's cart
@@ -202,8 +217,7 @@ const addToCart = catchAsync(async (req, res, next) => {
                 {
                     productId,
                     bidId: null,
-                    price: getProductPrice(product),
-                    quantity: 1
+                    quantity
                 }
             ]
         });
@@ -214,18 +228,24 @@ const addToCart = catchAsync(async (req, res, next) => {
         );
 
         if (existingItem) {
-            if (existingItem.quantity + 1 > product.stock) {
+            // Check total quantity against stock
+            if (existingItem.quantity + quantity > product.stock) {
                 return next(
-                    new AppError(`Only ${product.stock} item(s) available in stock`, 400)
+                    new AppError(
+                        `Only ${product.stock} item(s) available in stock`,
+                        400
+                    )
                 );
             }
-            existingItem.quantity += 1;
+
+            // Increase existing quantity
+            existingItem.quantity += quantity;
         } else {
+            // Add new product with requested quantity
             cart.items.push({
                 productId,
                 bidId: null,
-                price: getProductPrice(product),
-                quantity: 1
+                quantity
             });
         }
 
@@ -235,6 +255,98 @@ const addToCart = catchAsync(async (req, res, next) => {
     res.status(200).json({
         responseCode: "00",
         status: "success",
+        data: sanitizeResponse(cart)
+    });
+});
+
+const updateCartItem = catchAsync(async (req, res, next) => {
+    const { productId, action } = req.body;
+
+    const buyerId = req.user.id;
+
+    if (!productId || !["add", "delete"].includes(action)) {
+        return next(
+            new AppError("productId and valid action (add/delete) are required", 400)
+        );
+    }
+
+    // Check product exists
+    const product = await Product.findById(productId);
+
+    if (!product || product.status !== "approved") {
+        return next(new AppError("Product not available", 404));
+    }
+
+    // Find user's cart
+    const cart = await Cart.findOne({ buyerId });
+
+    if (!cart) {
+        return next(new AppError("Cart not found", 404));
+    }
+
+    // Find product in cart
+    const existingItem = cart.items.find(
+        item => item.productId.toString() === productId
+    );
+
+    // ADD ITEM
+    if (action === "add") {
+        // Product not already in cart
+        if (!existingItem) {
+            if (product.stock < 1) {
+                return next(
+                    new AppError("Product is out of stock", 400)
+                );
+            }
+
+            cart.items.push({
+                productId,
+                bidId: null,
+                quantity: 1
+            });
+        } else {
+            // Product already exists in cart
+            if (existingItem.quantity + 1 > product.stock) {
+                return next(
+                    new AppError(
+                        `Only ${product.stock} item(s) available in stock`,
+                        400
+                    )
+                );
+            }
+
+            existingItem.quantity += 1;
+        }
+    }
+
+    // DELETE ITEM
+    if (action === "delete") {
+        if (!existingItem) {
+            return next(
+                new AppError("Product not found in cart", 404)
+            );
+        }
+
+        // Decrease quantity
+        if (existingItem.quantity > 1) {
+            existingItem.quantity -= 1;
+        } else {
+            // Remove item completely when quantity becomes 0
+            cart.items = cart.items.filter(
+                item => item.productId.toString() !== productId
+            );
+        }
+    }
+
+    await cart.save();
+
+    res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message:
+            action === "add"
+                ? "Item added to cart"
+                : "Item removed from cart",
         data: sanitizeResponse(cart)
     });
 });
@@ -479,7 +591,8 @@ export {
     checkOut,
     getBuyerOrders,
     getOwnerOrders,
-    getProductOrders
+    getProductOrders,
+    updateCartItem
 }
 
 

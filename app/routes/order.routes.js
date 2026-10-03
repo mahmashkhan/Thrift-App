@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
     acceptBid, addToCart, checkOut, createBid, getBuyerOrders, getBuyerOrderStatus, getOwnerOrders, getProductBids, getProductOrders,
-    prepareOrder,
+    prepareOrder,updateCartItem,
     rejectBid, ViewCart,
     withdrawBid
 } from "../controllers/order.controller.js";
@@ -19,6 +19,8 @@ router.post('/bid/reject/:bidId', allowedUsers("admin", "seller"), rejectBid);
 router.post('/bid/withdraw/:bidId', allowedUsers(), withdrawBid);
 router.post('/cart/add', allowedUsers(), addToCart);
 router.get('/cart/get', allowedUsers(), ViewCart);
+router.patch('/cart/delete', allowedUsers(), updateCartItem);
+// router.delete('/cart/remove/:itemId', allowedUsers(), removeCartItem);
 
 
 router.post("/prepare/invoice", allowedUsers(), prepareOrder);
