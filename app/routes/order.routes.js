@@ -19,8 +19,8 @@ router.post('/bid/reject/:bidId', allowedUsers("admin", "seller"), rejectBid);
 router.post('/bid/withdraw/:bidId', allowedUsers(), withdrawBid);
 router.post('/cart/add', allowedUsers(), addToCart);
 router.get('/cart/get', allowedUsers(), ViewCart);
-router.patch('/cart/delete', allowedUsers(), updateCartItem);
-// router.delete('/cart/remove/:itemId', allowedUsers(), removeCartItem);
+router.patch('/cart/delete' , allowedUsers(), updateCartItem);
+// router.delete('/cart /remove/:itemId', allowedUsers(), removeCartItem);
 
 
 router.post("/prepare/invoice", allowedUsers(), prepareOrder);

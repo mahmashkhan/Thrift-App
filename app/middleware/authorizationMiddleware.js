@@ -41,7 +41,7 @@ export const allowedUsers = (...allowedRoles) => {
                 return res.status(403).json({
                     status: "fail",
                     responseCode: "01",
-                    message: "Action not allowed for this role",
+                    message: "Action not allowed for this role", 
                 });
             }
 

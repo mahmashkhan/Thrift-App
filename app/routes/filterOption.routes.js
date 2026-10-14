@@ -13,13 +13,13 @@ import { allowedUsers, optionalAuth } from "../middleware/authorizationMiddlewar
 const router = express.Router();
 
 // Public — used by both the buyer filter sidebar and the seller "add product" form
-router.get("/", getFilterOptions);
+router.get("/", getFilterOptions); 
 
 // Admin only
 router.get("/admin", allowedUsers(), getFilterOptionsAdmin);
 router.get("/get-filter", allowedUsers(), getFilterTypes);
-router.post("/create-filter", allowedUsers(), createFilterOption);
+router.post("/create-filter", createFilterOption);
 router.patch("/update-filter/:id", allowedUsers(), updateFilterOption);
 router.delete("/delete-filter/:id", allowedUsers(), deleteFilterOption);
-
+   
 export default router;

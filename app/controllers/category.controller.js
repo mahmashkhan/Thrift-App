@@ -142,21 +142,18 @@ const setPreferences = catchAsync(async (req, res, next) => {
     } = req.body;
 
     // Validate category IDs only if categories are provided
-    if (categories.length > 0) {
-        const count = await Category.countDocuments({
-            _id: { $in: categories },
-        });
+   if (categories.length > 0) {
+  const uniqueCategories = [...new Set(categories)];
 
-        if (count !== categories.length) {
-            return next(
-                new AppError(
-                    "One or more categories are invalid.",
-                    400
-                )
-            );
-        }
-    }
-
+  const validCategories = await PreferenceOption.distinct("category", {
+    type: "style",
+    category: { $in: uniqueCategories },
+  });
+ 
+  if (validCategories.length !== uniqueCategories.length) {
+    return next(new AppError("One or more categories are invalid.", 400));
+  }
+}
     const user = await User.findByIdAndUpdate(
         userId,
         {
