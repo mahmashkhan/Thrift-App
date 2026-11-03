@@ -1,5 +1,5 @@
 import { Seller, User } from '../models/user.model.js';
-import OTP from '../models/otpModel.js'
+import OTP from '../models/otp.model.js'
 import UserReview from '../models/user.review.model.js';
 import AppError from "../utils/AppError.js";
 import bcrypt from 'bcrypt';
@@ -75,7 +75,7 @@ const resendOtp = catchAsync(async (req, res, next) => {
 
     const { email } = req.body;
 
-    const otpRecord = otpStore.get(email);
+    const otpRecord = await OTP.findOne({ email });
 
     if (!otpRecord) {
         return next(
@@ -104,58 +104,56 @@ const resendOtp = catchAsync(async (req, res, next) => {
 
 });
 
-
 const verifyOTP = catchAsync(async (req, res, next) => {
     const { email, otp } = req.body;
 
-    if (!email || !otp)
-        return res.status(400).json({ message: "Email and OTP are required" });
+    if (!email || !otp) {
+        return res.status(400).json({
+            message: "Email and OTP are required"
+        });
+    }
 
-    const otpData = otpStore.get(email);
-    console.log("Here is otpData", otpData)
+    const otpData = await OTP.findOne({ email });
 
-    if (!otpData)
-        errorResponse(res, 404, { message: "No OTP request found" })
-    // return res.status(404).json({ message: "No OTP request found" });
+    console.log("This is OTP --------------->", otpData)
 
-    if (otpData.otp !== otp)
+    if (!otpData) {
+        return next(
+            new AppError("No OTP request found", 404)
+        );
+    }
+
+    if (otpData?.otp != otp) {
         return next(
             new AppError("Invalid OTP", 400)
         );
+    }
 
-    if (otpData.otpExpiry < Date.now())
+    if (otpData.otpExpiry.getTime() < Date.now()) {
         return next(
             new AppError("OTP expired", 400)
         );
+    }
 
-    const hashedPassword = await bcrypt.hash(otpData?.password, 10);
+    const hashedPassword = await bcrypt.hash(otpData.password, 10);
 
-    // Create user
     const newUser = new User({
-        name: otpData?.name,
-        email: email,
+        name: otpData.name,
+        email: otpData.email,
         password: hashedPassword,
-        phone: otpData?.phone,
-        image: otpData?.image,
-        roles: ['buyer'],
+        phone: otpData.phone,
+        image: otpData.image,
+        roles: ["buyer"],
     });
 
     const user = await newUser.save();
 
+    // Remove OTP record from MongoDB
+    await OTP.deleteOne({ _id: otpData._id });
 
-    // Remove OTP from memory
-    otpStore.delete(email);
-
-
-    successResponse(res, 201, sanitizeResponse(user))
-
-    // res.status(201).json({
-    //     code: "00",
-    //     successIndicator: "success",
-    //     data: sanitizeResponse(user)
-    // });
-
+    successResponse(res, 201, sanitizeResponse(user));
 });
+
 
 
 // loginUser.js

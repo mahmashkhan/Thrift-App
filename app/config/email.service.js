@@ -1,23 +1,35 @@
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 import otpStore from "../utils/otpStore.js";
+import OTP from "../models/otp.model.js";
+
 
 
 
 const generateAndStoreOtp = async (userData) => {
-
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-    const expiresAt = new Date(Date.now() + (10 * 60 * 1000));
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    otpStore.set(userData.email, {
-        ...userData,
-        otp,
-        expiresAt
-    });
+    await OTP.findOneAndUpdate(
+        { email: userData.email },
+        {
+            $set: {
+                name: userData.name,
+                email: userData.email,
+                password: userData.password,
+                phone: userData.phone,
+                image: userData.imageUrl,
+                otp,
+                otpExpiry,
+            },
+        },
+        { upsert: true, new: true, runValidators: true }
+    );
 
     return otp;
 };
+
 
 
 

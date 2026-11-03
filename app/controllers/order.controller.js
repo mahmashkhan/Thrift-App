@@ -63,7 +63,7 @@ const getProductBids = catchAsync(async (req, res) => {
     res.status(200).json({
         responseCode: "00",
         status: "success",
-        data: sanitizeResponse(bids)
+        data: bids
     });
 });
 
@@ -352,6 +352,42 @@ const updateCartItem = catchAsync(async (req, res, next) => {
 });
 
 
+const deleteCartItem = catchAsync(async (req, res, next) => {
+    const { productId } = req.body;
+    const buyerId = req.user.id;
+
+    if (!productId) {
+        return next(new AppError("productId is required", 400));
+    }
+
+    const cart = await Cart.findOne({ buyerId });
+
+    if (!cart) {
+        return next(new AppError("Cart not found", 404));
+    }
+
+    const existingItem = cart.items.find(
+        item => item.productId.toString() === productId
+    );
+
+    if (!existingItem) {
+        return next(new AppError("Product not found in cart", 404));
+    }
+
+    cart.items = cart.items.filter(
+        item => item.productId.toString() !== productId
+    );
+
+    await cart.save();
+
+    return res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message: "Item removed from cart",
+        data: sanitizeResponse(cart)
+    });
+});
+
 const ViewCart = catchAsync(async (req, res, next) => {
     const buyerId = req.user.id;
 
@@ -592,7 +628,8 @@ export {
     getBuyerOrders,
     getOwnerOrders,
     getProductOrders,
-    updateCartItem
+    updateCartItem,
+    deleteCartItem
 }
 
 

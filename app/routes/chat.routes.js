@@ -5,7 +5,8 @@ import {
     getConversations,
     getMessages,
     blockConversation,
-    unblockConversation
+    unblockConversation,
+    deleteConversations
 } from "../controllers/chat.controller.js";
 import { conversationValidator } from "../validators/chat.validator.js";
 import { validate } from "../middleware/validate.params.js";
@@ -19,5 +20,7 @@ router.get("/conversations", allowedUsers(), getConversations);
 router.get("/conversations/:conversationId/messages", allowedUsers(), getMessages);
 router.patch("/conversations/:conversationId/block", allowedUsers(), blockConversation);
 router.patch("/conversations/:conversationId/unblock", allowedUsers(), unblockConversation);
+
+router.delete("/conversations", allowedUsers(), deleteConversations);
 
 export default router;

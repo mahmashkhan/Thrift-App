@@ -95,7 +95,10 @@ const UserSchema = new mongoose.Schema({
 
     phone: String,
 
-    image: String,
+    imageUrl: {
+        type: String,
+        required: false
+    },
 
     status: {
         type: String,

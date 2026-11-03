@@ -52,26 +52,19 @@ export const updateUserValidator = Joi.object({
 // Validator
 
 export const adminCreateUserValidator = Joi.object({
-
     name: Joi.string().required(),
-
     email: Joi.string().email().required(),
-
     password: Joi.string().required(),
-
     role: Joi.string()
         .valid("admin", "influencer")
         .required(),
-
-    imageUrl: Joi.string().required(),
-
+    imageUrl: Joi.string().optional().allow(""),
     // influencer-only
     commissionRate: Joi.when("role", {
         is: "influencer",
         then: Joi.number().required(),
         otherwise: Joi.forbidden()
     })
-
 });
 
 

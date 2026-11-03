@@ -64,7 +64,7 @@ export const getConversations = catchAsync(async (req, res) => {
 
     const data = conversations.map((c) => {
         const unread_count = c.unread_counts?.get(currentUserId) || 0;
-        const obj = sanitizeResponse(c);
+        const obj = c;
         delete obj.unread_counts; // don't leak other participants' counts
         return { ...obj, unread_count };
     });
@@ -73,6 +73,45 @@ export const getConversations = catchAsync(async (req, res) => {
         responseCode: "00",
         status: "success",
         data,
+    });
+});
+
+// ------------ DELETE CONVERSATION --------------------- 
+export const deleteConversations = catchAsync(async (req, res, next) => {
+    const currentUserId = req.user.id.toString();
+    const { conversationIds } = req.body;
+
+    if (
+        !Array.isArray(conversationIds) ||
+        conversationIds.length === 0
+    ) {
+        return next(
+            new AppError("Conversation IDs are required", 400)
+        );
+    }
+
+    const invalidIds = conversationIds.some(
+        (id) => !mongoose.Types.ObjectId.isValid(id)
+    );
+
+    if (invalidIds) {
+        return next(
+            new AppError("One or more conversation IDs are invalid", 400)
+        );
+    }
+
+    const result = await Conversation.deleteMany({
+        _id: { $in: conversationIds },
+        participants: currentUserId,
+    });
+
+    return res.status(200).json({
+        responseCode: "00",
+        status: "success",
+        message: `${result.deletedCount} conversation(s) deleted successfully`,
+        data: {
+            deletedCount: result.deletedCount,
+        },
     });
 });
 // ─── Get messages of a conversation ───────────────────────────────────────────
@@ -121,7 +160,7 @@ export const getMessages = catchAsync(async (req, res, next) => {
     return res.status(200).json({
         responseCode: "00",
         status: "success",
-        data: sanitizeResponse(messages),
+        data: messages,
         pagination: {
             limit,
             hasMore,

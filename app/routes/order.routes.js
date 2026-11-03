@@ -3,7 +3,8 @@ import {
     acceptBid, addToCart, checkOut, createBid, getBuyerOrders, getBuyerOrderStatus, getOwnerOrders, getProductBids, getProductOrders,
     prepareOrder,updateCartItem,
     rejectBid, ViewCart,
-    withdrawBid
+    withdrawBid,
+    deleteCartItem
 } from "../controllers/order.controller.js";
 import { verifyToken } from "../config/jwt.handle.js";
 import { allowedUsers } from "../middleware/authorizationMiddleware.js";
@@ -20,7 +21,7 @@ router.post('/bid/withdraw/:bidId', allowedUsers(), withdrawBid);
 router.post('/cart/add', allowedUsers(), addToCart);
 router.get('/cart/get', allowedUsers(), ViewCart);
 router.patch('/cart/delete' , allowedUsers(), updateCartItem);
-// router.delete('/cart /remove/:itemId', allowedUsers(), removeCartItem);
+router.delete('/cart/delete', allowedUsers(), deleteCartItem);
 
 
 router.post("/prepare/invoice", allowedUsers(), prepareOrder);
