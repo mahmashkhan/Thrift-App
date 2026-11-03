@@ -20,7 +20,15 @@ const globalErrorHandler = (err, req, res, next) => {
   if (err.code === 11000) {
     err.statusCode = 400;
     err.responseCode = "03";
-    err.message = `Duplicate field value entered`;
+
+    const duplicatedField = Object.keys(err.keyValue || {})[0];
+    const duplicatedValue = err.keyValue?.[duplicatedField];
+
+    if (duplicatedField && duplicatedValue != null) {
+      err.message = `${duplicatedField} already exists`;
+    } else {
+      err.message = "Duplicate field value entered";
+    }
   }
 
   res.status(err.statusCode || 500).json({
